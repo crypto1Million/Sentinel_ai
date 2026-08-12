@@ -1,0 +1,25 @@
+[
+  {
+    "signature": "TX001",
+    "from": "Wallet001",
+    "to": "Wallet002",
+    "token": "TOKEN001",
+    "amount": 1000,
+    "type": "transfer"
+  },
+  {
+    "signature": "TX002",
+    "from": "Wallet002",
+    "to": "Wallet003",
+    "token": "TOKEN001",
+    "amount": 250,
+    "type": "transfer"
+  },
+  {
+    "signature": "TX003",
+    "from": "Wallet001",
+    "to": "TOKEN001",
+    "amount": 50000,
+    "type": "buy"
+  }
+]

@@ -1,0 +1,47 @@
+# Python
+
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Node
+
+node_modules/
+.next/
+dist/
+
+# Env
+
+.env
+
+# Logs
+
+*.log
+
+# IDE
+
+.vscode/
+.idea/
+
+# Mac
+
+.DS_Store
+
+# Coverage
+
+coverage/
+htmlcov/
+
+# Docker
+
+docker-data/
+
+# Redis
+
+dump.rdb
+
+# PostgreSQL
+
+postgres-data/

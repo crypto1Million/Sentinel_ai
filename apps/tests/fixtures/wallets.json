@@ -1,0 +1,23 @@
+[
+  {
+    "address": "Wallet001",
+    "balance": 25.4,
+    "tokens": ["TOKEN001", "TOKEN002"],
+    "type": "smart_money",
+    "score": 94
+  },
+  {
+    "address": "Wallet002",
+    "balance": 12.7,
+    "tokens": ["TOKEN001"],
+    "type": "fresh",
+    "score": 42
+  },
+  {
+    "address": "Wallet003",
+    "balance": 3.9,
+    "tokens": [],
+    "type": "insider",
+    "score": 21
+  }
+]

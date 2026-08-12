@@ -1,0 +1,25 @@
+[
+  {
+    "bundle_id": "BUNDLE001",
+    "token": "TOKEN001",
+    "wallets": [
+      "Wallet001",
+      "Wallet004",
+      "Wallet005"
+    ],
+    "percentage": 8.4,
+    "creator": "Wallet001"
+  },
+  {
+    "bundle_id": "BUNDLE002",
+    "token": "TOKEN002",
+    "wallets": [
+      "Wallet003",
+      "Wallet006",
+      "Wallet007",
+      "Wallet008"
+    ],
+    "percentage": 27.8,
+    "creator": "Wallet003"
+  }
+]

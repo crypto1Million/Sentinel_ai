@@ -1,0 +1,37 @@
+{
+  "nodes": [
+    {
+      "id": "Wallet001",
+      "type": "wallet"
+    },
+    {
+      "id": "Wallet002",
+      "type": "wallet"
+    },
+    {
+      "id": "TOKEN001",
+      "type": "token"
+    },
+    {
+      "id": "BUNDLE001",
+      "type": "bundle"
+    }
+  ],
+  "relationships": [
+    {
+      "from": "Wallet001",
+      "to": "Wallet002",
+      "type": "FUNDED"
+    },
+    {
+      "from": "Wallet001",
+      "to": "TOKEN001",
+      "type": "BOUGHT"
+    },
+    {
+      "from": "BUNDLE001",
+      "to": "TOKEN001",
+      "type": "BUNDLED"
+    }
+  ]
+}
