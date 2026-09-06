@@ -8,3 +8,5 @@ websockets
 python-dotenv
 pydantic
 pydantic-settings
+Pillow
+httpx
