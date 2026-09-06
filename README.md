@@ -1,6 +1,6 @@
 # Sentinel AI
 
-Sentinel AI is a Solana memecoin intelligence and trading terminal designed to provide traders with institutional-grade analytics, wallet intelligence, narrative tracking, risk analysis, and AI-powered scoring.
+Sentinel AI is a crypto memecoin intelligence and trading terminal designed to provide traders with institutional-grade analytics, wallet intelligence, narrative tracking, risk analysis, and AI-powered scoring.
 
 ## Core Features
 
