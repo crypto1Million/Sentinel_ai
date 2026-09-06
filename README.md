@@ -1,6 +1,6 @@
 # Sentinel AI
 
-Sentinel AI is a crypto memecoin intelligence and trading terminal designed to provide traders with institutional-grade analytics, wallet intelligence, narrative tracking, risk analysis, and AI-powered scoring.
+Sentinel AI is a crypto memecoin intelligence and trading terminal designed to provide traders with institutional-grade analytics, wallet intelligence, narrative tracking, risk analysis, and AI-powered scoring to provide the actual potential information of a memecoin made on solana , BNB , robinhood & ethereum.
 
 ## Core Features
 
