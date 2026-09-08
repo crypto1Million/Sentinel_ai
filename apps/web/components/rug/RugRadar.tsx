@@ -1,5 +1,7 @@
 "use client";
 
+import type { ElementType } from "react";
+
 import {
   ShieldAlert,
   AlertTriangle,
@@ -10,45 +12,126 @@ import {
   Coins,
   Wallet,
   Users,
-  TrendingDown,
   TrendingUp,
-  Activity,
   Eye,
   Skull,
   CheckCircle2,
   XCircle,
-  BooleanMetric,
-  Metric,
 } from "lucide-react";
 
 export interface RugRadarProps {
   rugScore: number;
-
   rugProbability: number;
-
   confidence: number;
 
-  riskLevel: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  riskLevel:
+    | "LOW"
+    | "MEDIUM"
+    | "HIGH"
+    | "CRITICAL";
 
   liquidityLocked: boolean;
-
   liquidityBurned: boolean;
-
   ownershipRenounced: boolean;
-
   mintAuthority: boolean;
-
   freezeAuthority: boolean;
 
   holderConcentration: number;
-
   insiderWallets: number;
-
   deployerTrust: number;
-
   smartMoneyExposure: number;
 
   aiSummary: string;
+}
+
+interface MetricProps {
+  icon: ElementType;
+  title: string;
+  value: string;
+  color?: string;
+}
+
+function Metric({
+  icon: Icon,
+  title,
+  value,
+  color = "text-white",
+}: MetricProps) {
+  return (
+    <div className="rounded-xl border border-[#292929] bg-[#171717] p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <Icon
+          size={18}
+          className={color}
+        />
+
+        <span className="text-sm text-[#8B8B8B]">
+          {title}
+        </span>
+      </div>
+
+      <div className="text-xl font-semibold text-white">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+interface BooleanMetricProps {
+  title: string;
+  value: boolean;
+  icon: ElementType;
+}
+
+function BooleanMetric({
+  title,
+  value,
+  icon: Icon,
+}: BooleanMetricProps) {
+  return (
+    <div className="flex items-center justify-between rounded-xl border border-[#292929] bg-[#171717] p-4">
+      <div className="flex items-center gap-3">
+        <Icon
+          size={18}
+          className={
+            value
+              ? "text-[#D4AF37]"
+              : "text-red-400"
+          }
+        />
+
+        <span className="text-sm text-[#8B8B8B]">
+          {title}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-2">
+        {value ? (
+          <>
+            <CheckCircle2
+              size={18}
+              className="text-[#D4AF37]"
+            />
+
+            <span className="text-sm font-medium text-[#F5C84C]">
+              Safe
+            </span>
+          </>
+        ) : (
+          <>
+            <XCircle
+              size={18}
+              className="text-red-400"
+            />
+
+            <span className="text-sm font-medium text-red-400">
+              Risk
+            </span>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default function RugRadar({
@@ -71,65 +154,57 @@ export default function RugRadar({
     riskLevel === "LOW"
       ? "text-green-400"
       : riskLevel === "MEDIUM"
-      ? "text-yellow-400"
-      : riskLevel === "HIGH"
-      ? "text-orange-400"
-      : "text-red-500";
+        ? "text-yellow-400"
+        : riskLevel === "HIGH"
+          ? "text-orange-400"
+          : "text-red-500";
+
+  const safeProbability = Math.max(
+    0,
+    Math.min(
+      Number.isFinite(rugProbability)
+        ? rugProbability
+        : 0,
+      100
+    )
+  );
 
   return (
-    <div className="rounded-2xl border border-red-900 bg-[#11161d] p-6 space-y-8">
-
+    <section className="space-y-8 rounded-2xl border border-red-900/70 bg-[#101010] p-6">
       {/* Header */}
 
-      <div className="flex items-center justify-between">
-
+      <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-
           <ShieldAlert
-            className="text-red-400"
             size={30}
+            className="text-red-400"
           />
 
           <div>
-
-            <h2 className="text-2xl font-bold">
-
-              Rug Radar™
-
+            <h2 className="text-2xl font-bold text-white">
+              Rug Radar
             </h2>
 
-            <p className="text-sm text-zinc-500">
-
-              Sentinel Security Intelligence
-
+            <p className="text-sm text-[#8B8B8B]">
+              Sentinel security intelligence
             </p>
-
           </div>
-
         </div>
 
-        <div className="rounded-xl bg-red-500 px-6 py-4">
-
-          <div className="text-4xl font-black text-black">
-
+        <div className="rounded-xl bg-red-500 px-5 py-3">
+          <div className="text-3xl font-black text-black">
             {rugScore}
-
           </div>
 
           <div className="text-xs font-semibold text-black">
-
-            /100
-
+            /100 Risk
           </div>
-
         </div>
-
       </div>
 
-      {/* Overall */}
+      {/* Overall Risk */}
 
       <div className="grid gap-4 md:grid-cols-3">
-
         <Metric
           icon={AlertTriangle}
           title="Risk Level"
@@ -141,7 +216,7 @@ export default function RugRadar({
           icon={Brain}
           title="AI Confidence"
           value={`${confidence}%`}
-          color="text-cyan-400"
+          color="text-[#F5C84C]"
         />
 
         <Metric
@@ -150,21 +225,16 @@ export default function RugRadar({
           value={`${rugProbability}%`}
           color="text-red-400"
         />
-
       </div>
 
-      {/* Contract */}
+      {/* Contract Security */}
 
       <div>
-
-        <h3 className="mb-4 font-semibold">
-
+        <h3 className="mb-4 font-semibold text-white">
           Contract Security
-
         </h3>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-
           <BooleanMetric
             title="Liquidity Locked"
             value={liquidityLocked}
@@ -194,23 +264,17 @@ export default function RugRadar({
             value={!freezeAuthority}
             icon={Wallet}
           />
-
         </div>
-
       </div>
 
-      {/* AI */}
+      {/* AI Risk Metrics */}
 
       <div>
-
-        <h3 className="mb-4 font-semibold">
-
+        <h3 className="mb-4 font-semibold text-white">
           AI Risk Metrics
-
         </h3>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-
           <Metric
             icon={Users}
             title="Holder Concentration"
@@ -221,7 +285,7 @@ export default function RugRadar({
           <Metric
             icon={Eye}
             title="Insider Wallets"
-            value={insiderWallets.toString()}
+            value={insiderWallets.toLocaleString()}
             color="text-red-400"
           />
 
@@ -229,80 +293,59 @@ export default function RugRadar({
             icon={ShieldCheck}
             title="Deployer Trust"
             value={`${deployerTrust}/100`}
-            color="text-green-400"
+            color="text-[#F5C84C]"
           />
 
           <Metric
             icon={TrendingUp}
             title="Smart Money"
             value={`${smartMoneyExposure}%`}
-            color="text-cyan-400"
+            color="text-green-400"
           />
-
         </div>
-
       </div>
 
-      {/* Progress */}
+      {/* Rug Probability */}
 
-      <div>
-
-        <div className="mb-2 flex justify-between">
-
-          <span>
-
+      <div className="rounded-xl border border-[#292929] bg-[#171717] p-5">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-sm text-[#8B8B8B]">
             Overall Rug Risk
-
           </span>
 
-          <span>
-
-            {rugProbability}%
-
+          <span className="font-semibold text-red-400">
+            {safeProbability.toFixed(1)}%
           </span>
-
         </div>
 
-        <div className="h-3 rounded-full bg-zinc-800">
-
+        <div className="h-3 overflow-hidden rounded-full bg-[#070707]">
           <div
             className="h-full rounded-full bg-red-500"
             style={{
-              width: `${rugProbability}%`,
+              width: `${safeProbability}%`,
             }}
           />
-
         </div>
-
       </div>
 
-      {/* AI */}
+      {/* AI Explanation */}
 
-      <div className="rounded-xl border border-red-900 bg-red-950/20 p-5">
-
+      <div className="rounded-xl border border-red-900/70 bg-red-950/20 p-5">
         <div className="mb-3 flex items-center gap-2">
-
           <Brain
-            className="text-red-400"
             size={20}
+            className="text-red-400"
           />
 
-          <span className="font-semibold">
-
+          <span className="font-semibold text-white">
             Sentinel AI Explanation
-
           </span>
-
         </div>
 
         <p className="leading-7 text-zinc-300">
-
-          {aiExplanation}
-
+          {aiSummary}
         </p>
-
-        </div>
-
-        {/* AI Summary */}
-
-        <div className="rounded-xl border border-cyan-900 bg-cyan-950/20 p-5">
+      </div>
+    </section>
+  );
+}

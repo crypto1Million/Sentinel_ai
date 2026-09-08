@@ -1,0 +1,38 @@
+:root {
+  /* =========================================================
+     SENTINEL GOLD — DEFAULT TERMINAL THEME
+     ========================================================= */
+
+  --sentinel-background: #070707;
+  --sentinel-panel: #101010;
+  --sentinel-panel-2: #171717;
+  --sentinel-border: #292929;
+
+  --sentinel-primary: #D4AF37;
+  --sentinel-primary-bright: #F5C84C;
+  --sentinel-primary-deep: #8C6D1F;
+
+  --sentinel-text: #FFFFFF;
+  --sentinel-text-muted: #8B8B8B;
+
+  /* =========================================================
+     SEMANTIC INTELLIGENCE COLORS
+     These communicate meaning and should remain distinct
+     from the user's terminal theme.
+     ========================================================= */
+
+  --sentinel-base-score: #22D3EE;
+  --sentinel-base-score-bg: rgba(34, 211, 238, 0.08);
+  --sentinel-base-score-border: rgba(34, 211, 238, 0.25);
+
+  --sentinel-momentum-positive: #39E58C;
+  --sentinel-momentum-warning: #F5C84C;
+  --sentinel-momentum-hot: #F97316;
+
+  --sentinel-rug-risk: #FF5364;
+  --sentinel-rug-risk-bg: rgba(255, 83, 100, 0.08);
+  --sentinel-rug-risk-border: rgba(255, 83, 100, 0.25);
+
+  --sentinel-ai: #A855F7;
+  --sentinel-ai-secondary: #22D3EE;
+}

@@ -1,95 +1,61 @@
 "use client";
 
-import TokenHeader from "./components/TokenHeader";
-import ContractCard from "./components/ContractCard";
-import SocialLinks from "./components/SocialLinks";
-import TokenStats from "./components/TokenStats";
-import SecurityStatus from "./components/SecurityStatus";
-import LaunchInfo from "./components/LaunchInfo";
-import DeployerCard from "./components/DeployerCard";
-import QuickActions from "./components/QuickActions";
+import TokenHeader from "./TokenHeader";
+import ContractCard from "./ContractCard";
+import SocialLinks from "./SocialLinks";
+import TokenStats from "./TokenStats";
+import SecurityStatus from "./SecurityStatus";
+import LaunchInfo from "./LaunchInfo";
+import DeployerCard from "./DeployerCard";
+import QuickActions from "./QuickActions";
 
 export interface TokenInfoProps {
   logo: string;
-
   name: string;
-
   symbol: string;
-
   verified: boolean;
-
   contract: string;
 
   website?: string;
-
   telegram?: string;
-
   twitter?: string;
-
   github?: string;
 
   price: number;
-
   marketCap: number;
-
   holders: number;
-
   liquidity: number;
-
   volume24h: number;
 
   mintAuthority: boolean;
-
   freezeAuthority: boolean;
-
   lpLocked: boolean;
-
   lpBurned: boolean;
-
   verifiedContract: boolean;
-
   renounced: boolean;
-
   honeypot: boolean;
-
   securityScore: number;
 
   launchDate: string;
-
   tokenAge: string;
-
   blockchain: string;
-
   dex: string;
-
   pair: string;
-
   deployer: string;
-
   initialLiquidity: number;
-
   currentLiquidity: number;
-
   launchPrice: number;
 
   deployerVerified: boolean;
-
   reputationScore: number;
-
   totalTokens: number;
-
   successfulTokens: number;
-
   ruggedTokens: number;
-
   winRate: number;
-
   currentHoldings: number;
-
   soldPercentage: number;
 
   explorerUrl?: string;
-
   dexUrl?: string;
 }
 
@@ -98,20 +64,16 @@ export default function TokenInfo({
   name,
   symbol,
   verified,
-
   contract,
-
   website,
   telegram,
   twitter,
   github,
-
   price,
   marketCap,
   holders,
   liquidity,
   volume24h,
-
   mintAuthority,
   freezeAuthority,
   lpLocked,
@@ -120,7 +82,6 @@ export default function TokenInfo({
   renounced,
   honeypot,
   securityScore,
-
   launchDate,
   tokenAge,
   blockchain,
@@ -130,7 +91,6 @@ export default function TokenInfo({
   initialLiquidity,
   currentLiquidity,
   launchPrice,
-
   deployerVerified,
   reputationScore,
   totalTokens,
@@ -139,19 +99,15 @@ export default function TokenInfo({
   winRate,
   currentHoldings,
   soldPercentage,
-
   explorerUrl,
   dexUrl,
 }: TokenInfoProps) {
   return (
     <div className="space-y-6">
+      {/* Header */}
 
-      {/* ================= HEADER ================= */}
-
-      <div className="rounded-xl border border-zinc-800 bg-[#11161d] p-6">
-
+      <div className="rounded-xl border border-[#292929] bg-[#101010] p-6">
         <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
-
           <TokenHeader
             logo={logo}
             name={name}
@@ -165,18 +121,16 @@ export default function TokenInfo({
             twitter={twitter}
             github={github}
           />
-
         </div>
-
       </div>
 
-      {/* ================= CONTRACT ================= */}
+      {/* Contract */}
 
       <ContractCard
         contract={contract}
       />
 
-      {/* ================= TOKEN STATS ================= */}
+      {/* Stats */}
 
       <TokenStats
         price={price}
@@ -186,7 +140,7 @@ export default function TokenInfo({
         volume24h={volume24h}
       />
 
-      {/* ================= QUICK ACTIONS ================= */}
+      {/* Quick Actions */}
 
       <QuickActions
         contract={contract}
@@ -206,7 +160,7 @@ export default function TokenInfo({
         }
       />
 
-      {/* ================= SECURITY ================= */}
+      {/* Security */}
 
       <SecurityStatus
         mintAuthority={mintAuthority}
@@ -219,7 +173,7 @@ export default function TokenInfo({
         securityScore={securityScore}
       />
 
-      {/* ================= LAUNCH ================= */}
+      {/* Launch */}
 
       <LaunchInfo
         launchDate={launchDate}
@@ -233,7 +187,7 @@ export default function TokenInfo({
         launchPrice={launchPrice}
       />
 
-      {/* ================= DEPLOYER ================= */}
+      {/* Deployer */}
 
       <DeployerCard
         address={deployer}
@@ -247,8 +201,6 @@ export default function TokenInfo({
         soldPercentage={soldPercentage}
         explorerUrl={explorerUrl}
       />
-
     </div>
   );
 }
-```

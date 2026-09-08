@@ -1,5 +1,8 @@
 "use client";
 
+import type { ElementType } from "react";
+import { useState } from "react";
+
 import {
   Star,
   Bell,
@@ -16,21 +19,13 @@ import {
   Flag,
 } from "lucide-react";
 
-import { useState } from "react";
-
 interface QuickActionsProps {
   contract: string;
-
   explorerUrl?: string;
-
   dexUrl?: string;
-
   onAIAnalysis?: () => void;
-
   onReplay?: () => void;
-
   onWalletDNA?: () => void;
-
   onRugRadar?: () => void;
 }
 
@@ -44,59 +39,53 @@ export default function QuickActions({
   onRugRadar,
 }: QuickActionsProps) {
   const [favorite, setFavorite] = useState(false);
-
   const [watching, setWatching] = useState(true);
-
   const [copied, setCopied] = useState(false);
 
   async function copyContract() {
-    await navigator.clipboard.writeText(contract);
+    try {
+      await navigator.clipboard.writeText(contract);
+      setCopied(true);
 
-    setCopied(true);
-
-    setTimeout(() => {
+      window.setTimeout(() => {
+        setCopied(false);
+      }, 1500);
+    } catch {
       setCopied(false);
-    }, 1500);
+    }
   }
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-[#11161d] p-5">
-
+    <div className="rounded-xl border border-[#292929] bg-[#101010] p-5">
       <div className="mb-6">
-
-        <h2 className="text-lg font-semibold">
-
+        <h2 className="text-lg font-semibold text-white">
           Quick Actions
-
         </h2>
 
-        <p className="text-xs text-zinc-500">
-
+        <p className="text-xs text-[#8B8B8B]">
           Token shortcuts and Sentinel tools
-
         </p>
-
       </div>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-
         <ActionButton
           icon={Star}
           title={favorite ? "Favorited" : "Favorite"}
-          color={favorite ? "text-yellow-400" : ""}
-          onClick={() => setFavorite(!favorite)}
+          color={favorite ? "text-[#F5C84C]" : undefined}
+          onClick={() => setFavorite((current) => !current)}
         />
 
         <ActionButton
           icon={watching ? Eye : EyeOff}
           title={watching ? "Watching" : "Watchlist"}
-          color={watching ? "text-cyan-400" : ""}
-          onClick={() => setWatching(!watching)}
+          color={watching ? "text-[#D4AF37]" : undefined}
+          onClick={() => setWatching((current) => !current)}
         />
 
         <ActionButton
           icon={Copy}
           title={copied ? "Copied" : "Copy Contract"}
+          color={copied ? "text-green-400" : undefined}
           onClick={copyContract}
         />
 
@@ -104,14 +93,18 @@ export default function QuickActions({
           <a
             href={explorerUrl}
             target="_blank"
-            className="rounded-lg border border-zinc-700 bg-[#1B2330] p-4 hover:bg-[#263244]"
+            rel="noreferrer"
+            className="rounded-lg border border-[#292929] bg-[#171717] p-4 transition hover:border-[#8C6D1F] hover:bg-[#1f1a0f]"
           >
             <div className="flex items-center gap-3">
+              <ExternalLink
+                size={20}
+                className="text-[#D4AF37]"
+              />
 
-              <ExternalLink size={20} />
-
-              <span>Explorer</span>
-
+              <span className="text-white">
+                Explorer
+              </span>
             </div>
           </a>
         )}
@@ -120,14 +113,18 @@ export default function QuickActions({
           <a
             href={dexUrl}
             target="_blank"
-            className="rounded-lg border border-zinc-700 bg-[#1B2330] p-4 hover:bg-[#263244]"
+            rel="noreferrer"
+            className="rounded-lg border border-[#292929] bg-[#171717] p-4 transition hover:border-[#8C6D1F] hover:bg-[#1f1a0f]"
           >
             <div className="flex items-center gap-3">
+              <Share2
+                size={20}
+                className="text-[#D4AF37]"
+              />
 
-              <Share2 size={20} />
-
-              <span>Open DEX</span>
-
+              <span className="text-white">
+                Open DEX
+              </span>
             </div>
           </a>
         )}
@@ -135,24 +132,28 @@ export default function QuickActions({
         <ActionButton
           icon={Brain}
           title="AI Analysis"
+          color="text-purple-400"
           onClick={onAIAnalysis}
         />
 
         <ActionButton
           icon={Shield}
           title="Rug Radar"
+          color="text-red-400"
           onClick={onRugRadar}
         />
 
         <ActionButton
           icon={Wallet}
           title="Wallet DNA"
+          color="text-blue-400"
           onClick={onWalletDNA}
         />
 
         <ActionButton
           icon={Play}
           title="Replay"
+          color="text-[#D4AF37]"
           onClick={onReplay}
         />
 
@@ -169,59 +170,42 @@ export default function QuickActions({
         <ActionButton
           icon={Flag}
           title="Report Token"
+          color="text-red-400"
         />
-
       </div>
-
     </div>
   );
 }
 
 interface ActionButtonProps {
-  icon: React.ElementType;
-
+  icon: ElementType;
   title: string;
-
   color?: string;
-
   onClick?: () => void;
 }
 
 function ActionButton({
   icon: Icon,
   title,
-  color = "",
+  color = "text-[#8B8B8B]",
   onClick,
 }: ActionButtonProps) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className="
-        rounded-lg
-        border
-        border-zinc-700
-        bg-[#1B2330]
-        p-4
-        transition
-        hover:bg-[#263244]
-      "
+      className="rounded-lg border border-[#292929] bg-[#171717] p-4 transition hover:border-[#8C6D1F] hover:bg-[#1f1a0f]"
     >
       <div className="flex flex-col items-center gap-3">
-
         <Icon
           size={22}
           className={color}
         />
 
-        <span className="text-sm font-medium">
-
+        <span className="text-sm font-medium text-white">
           {title}
-
         </span>
-
       </div>
-
     </button>
   );
 }
-```

@@ -118,7 +118,7 @@ export default function PNLCard({
 
       <div className="relative z-10 p-6 sm:p-8">
 
-        {/* Branding */}
+        {/* Brand */}
 
         <div className="mb-6 flex items-center justify-between">
 

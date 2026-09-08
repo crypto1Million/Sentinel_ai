@@ -1,253 +1,231 @@
 "use client";
 
 import {
-  Rocket,
-  CalendarDays,
-  Clock3,
+  ShieldCheck,
+  ShieldAlert,
+  Wallet,
+  Trophy,
+  TrendingUp,
+  TrendingDown,
   Coins,
-  User,
-  Globe,
-  Timer,
+  ExternalLink,
+  Copy,
 } from "lucide-react";
 
-interface LaunchInfoProps {
-  launchDate: string;
-  tokenAge: string;
-  blockchain: string;
-  dex: string;
-  pair: string;
-  deployer: string;
-  initialLiquidity: number;
-  currentLiquidity: number;
-  launchPrice: number;
+interface DeployerCardProps {
+  address: string;
+  verified: boolean;
+  reputationScore: number;
+  totalTokens: number;
+  successfulTokens: number;
+  ruggedTokens: number;
+  winRate: number;
+  currentHoldings: number;
+  soldPercentage: number;
+  explorerUrl?: string;
 }
 
-interface InfoCardProps {
-  icon: React.ElementType;
-  title: string;
-  value: string;
-  color?: string;
-}
+export default function DeployerCard({
+  address,
+  verified,
+  reputationScore,
+  totalTokens,
+  successfulTokens,
+  ruggedTokens,
+  winRate,
+  currentHoldings,
+  soldPercentage,
+  explorerUrl,
+}: DeployerCardProps) {
+  async function copyAddress() {
+    await navigator.clipboard.writeText(address);
+  }
 
-function InfoCard({
-  icon: Icon,
-  title,
-  value,
-  color = "text-cyan-400",
-}: InfoCardProps) {
-  return (
-    <div className="rounded-xl border border-zinc-800 bg-[#1B2330] p-4">
-
-      <div className="mb-3 flex items-center gap-2">
-
-        <Icon
-          size={18}
-          className={color}
-        />
-
-        <span className="text-sm text-zinc-400">
-          {title}
-        </span>
-
-      </div>
-
-      <div className="font-semibold text-white">
-        {value}
-      </div>
-
-    </div>
-  );
-}
-
-export default function LaunchInfo({
-  launchDate,
-  tokenAge,
-  blockchain,
-  dex,
-  pair,
-  deployer,
-  initialLiquidity,
-  currentLiquidity,
-  launchPrice,
-}: LaunchInfoProps) {
-
-  const liquidityGrowth =
-    currentLiquidity - initialLiquidity;
-
-  const liquidityGrowthPercent =
-    initialLiquidity > 0
-      ? (
-          (liquidityGrowth / initialLiquidity) *
-          100
-        ).toFixed(1)
-      : "0";
+  const shortAddress =
+    address.length > 14
+      ? `${address.slice(0, 6)}...${address.slice(-6)}`
+      : address;
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-[#11161d] p-5">
-
-      <div className="mb-6 flex items-center gap-3">
-
-        <Rocket
-          className="text-cyan-400"
-          size={24}
-        />
-
-        <div>
-
-          <h2 className="text-lg font-semibold">
-            Launch Information
-          </h2>
-
-          <p className="text-xs text-zinc-500">
-            Token deployment overview
-          </p>
-
-        </div>
-
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-
-        <InfoCard
-          icon={CalendarDays}
-          title="Launch Date"
-          value={launchDate}
-        />
-
-        <InfoCard
-          icon={Clock3}
-          title="Token Age"
-          value={tokenAge}
-          color="text-yellow-400"
-        />
-
-        <InfoCard
-          icon={Globe}
-          title="Blockchain"
-          value={blockchain}
-          color="text-green-400"
-        />
-
-        <InfoCard
-          icon={Coins}
-          title="DEX"
-          value={dex}
-          color="text-purple-400"
-        />
-
-        <InfoCard
-          icon={Coins}
-          title="Trading Pair"
-          value={pair}
-          color="text-orange-400"
-        />
-
-        <InfoCard
-          icon={User}
-          title="Deployer"
-          value={`${deployer.slice(0, 6)}...${deployer.slice(-6)}`}
-          color="text-pink-400"
-        />
-
-      </div>
-
-      <div className="mt-6 rounded-xl border border-zinc-800 bg-[#1B2330] p-5">
-
-        <div className="mb-4 flex items-center gap-2">
-
-          <Timer
-            className="text-cyan-400"
-            size={18}
+    <div className="rounded-xl border border-[#292929] bg-[#101010] p-5">
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Wallet
+            size={24}
+            className="text-[#D4AF37]"
           />
 
-          <span className="font-semibold">
-            Launch Statistics
-          </span>
+          <div>
+            <h2 className="text-lg font-semibold text-white">
+              Deployer Intelligence
+            </h2>
 
+            <p className="text-xs text-[#8B8B8B]">
+              Creator wallet reputation and history
+            </p>
+          </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
-
-          <div>
-
-            <div className="text-sm text-zinc-500">
-              Initial Liquidity
-            </div>
-
-            <div className="mt-1 text-lg font-semibold">
-              $
-              {initialLiquidity.toLocaleString()}
-            </div>
-
+        {verified ? (
+          <div className="flex items-center gap-2 rounded-lg border border-[#8C6D1F] bg-[#171717] px-3 py-2 text-[#F5C84C]">
+            <ShieldCheck size={16} />
+            <span className="text-sm font-medium">
+              Verified
+            </span>
           </div>
-
-          <div>
-
-            <div className="text-sm text-zinc-500">
-              Current Liquidity
-            </div>
-
-            <div className="mt-1 text-lg font-semibold">
-              $
-              {currentLiquidity.toLocaleString()}
-            </div>
-
+        ) : (
+          <div className="flex items-center gap-2 rounded-lg border border-red-900 bg-red-950/20 px-3 py-2 text-red-400">
+            <ShieldAlert size={16} />
+            <span className="text-sm font-medium">
+              Unverified
+            </span>
           </div>
-
-          <div>
-
-            <div className="text-sm text-zinc-500">
-              Launch Price
-            </div>
-
-            <div className="mt-1 text-lg font-semibold">
-              ${launchPrice}
-            </div>
-
-          </div>
-
-        </div>
-
+        )}
       </div>
 
-      <div className="mt-6 rounded-xl border border-zinc-800 bg-[#1B2330] p-5">
+      {/* Address */}
 
-        <div className="mb-2 flex items-center justify-between">
-
-          <span className="text-sm text-zinc-400">
-            Liquidity Growth
-          </span>
-
-          <span
-            className={`font-semibold ${
-              liquidityGrowth >= 0
-                ? "text-green-400"
-                : "text-red-400"
-            }`}
-          >
-            {liquidityGrowth >= 0 ? "+" : ""}
-            {liquidityGrowthPercent}%
-          </span>
-
+      <div className="mb-6 rounded-xl border border-[#292929] bg-[#171717] p-4">
+        <div className="mb-2 text-xs text-[#8B8B8B]">
+          Deployer Wallet
         </div>
 
-        <div className="h-3 overflow-hidden rounded-full bg-zinc-800">
+        <div className="flex items-center justify-between gap-3">
+          <code className="text-sm text-[#F5C84C]">
+            {shortAddress}
+          </code>
 
+          <div className="flex items-center gap-2">
+            <button
+              onClick={copyAddress}
+              className="rounded-md border border-[#292929] p-2 text-[#8B8B8B] hover:text-white"
+            >
+              <Copy size={15} />
+            </button>
+
+            {explorerUrl && (
+              <a
+                href={explorerUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-md border border-[#292929] p-2 text-[#8B8B8B] hover:text-white"
+              >
+                <ExternalLink size={15} />
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Reputation */}
+
+      <div className="mb-6 rounded-xl border border-[#8C6D1F] bg-[#171717] p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Trophy
+              size={18}
+              className="text-[#D4AF37]"
+            />
+
+            <span className="text-sm text-[#8B8B8B]">
+              Reputation Score
+            </span>
+          </div>
+
+          <span className="text-2xl font-bold text-[#F5C84C]">
+            {reputationScore}/100
+          </span>
+        </div>
+
+        <div className="h-2 overflow-hidden rounded-full bg-[#070707]">
           <div
-            className="h-full rounded-full bg-cyan-500"
+            className="h-full rounded-full bg-[#D4AF37]"
             style={{
-              width: `${Math.min(
-                Number(liquidityGrowthPercent),
-                100
+              width: `${Math.max(
+                0,
+                Math.min(reputationScore, 100)
               )}%`,
             }}
           />
-
         </div>
-
       </div>
 
+      {/* Metrics */}
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <Metric
+          title="Tokens Created"
+          value={totalTokens}
+          icon={Coins}
+          color="text-[#D4AF37]"
+        />
+
+        <Metric
+          title="Successful Tokens"
+          value={successfulTokens}
+          icon={TrendingUp}
+          color="text-green-400"
+        />
+
+        <Metric
+          title="Rugged Tokens"
+          value={ruggedTokens}
+          icon={TrendingDown}
+          color="text-red-400"
+        />
+
+        <Metric
+          title="Win Rate"
+          value={`${winRate}%`}
+          icon={Trophy}
+          color="text-[#F5C84C]"
+        />
+
+        <Metric
+          title="Current Holdings"
+          value={`${currentHoldings}%`}
+          icon={Wallet}
+          color="text-blue-400"
+        />
+
+        <Metric
+          title="Sold"
+          value={`${soldPercentage}%`}
+          icon={Coins}
+          color="text-orange-400"
+        />
+      </div>
     </div>
   );
 }
-```
+
+function Metric({
+  title,
+  value,
+  icon: Icon,
+  color,
+}: {
+  title: string;
+  value: string | number;
+  icon: React.ElementType;
+  color: string;
+}) {
+  return (
+    <div className="rounded-xl border border-[#292929] bg-[#171717] p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <Icon
+          size={17}
+          className={color}
+        />
+
+        <span className="text-sm text-[#8B8B8B]">
+          {title}
+        </span>
+      </div>
+
+      <div className="text-xl font-semibold text-white">
+        {value}
+      </div>
+    </div>
+  );
+}

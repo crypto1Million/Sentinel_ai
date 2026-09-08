@@ -33,28 +33,24 @@ function InfoCard({
   icon: Icon,
   title,
   value,
-  color = "text-cyan-400",
+  color = "text-[#D4AF37]",
 }: InfoCardProps) {
   return (
-    <div className="rounded-xl border border-zinc-800 bg-[#1B2330] p-4">
-
+    <div className="rounded-xl border border-[#292929] bg-[#171717] p-4">
       <div className="mb-3 flex items-center gap-2">
-
         <Icon
           size={18}
           className={color}
         />
 
-        <span className="text-sm text-zinc-400">
+        <span className="text-sm text-[#8B8B8B]">
           {title}
         </span>
-
       </div>
 
       <div className="font-semibold text-white">
         {value}
       </div>
-
     </div>
   );
 }
@@ -70,44 +66,39 @@ export default function LaunchInfo({
   currentLiquidity,
   launchPrice,
 }: LaunchInfoProps) {
-
   const liquidityGrowth =
     currentLiquidity - initialLiquidity;
 
   const liquidityGrowthPercent =
     initialLiquidity > 0
-      ? (
-          (liquidityGrowth / initialLiquidity) *
-          100
-        ).toFixed(1)
-      : "0";
+      ? (liquidityGrowth / initialLiquidity) * 100
+      : 0;
+
+  const shortDeployer =
+    deployer.length > 12
+      ? `${deployer.slice(0, 6)}...${deployer.slice(-6)}`
+      : deployer;
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-[#11161d] p-5">
-
+    <div className="rounded-xl border border-[#292929] bg-[#101010] p-5">
       <div className="mb-6 flex items-center gap-3">
-
         <Rocket
-          className="text-cyan-400"
+          className="text-[#D4AF37]"
           size={24}
         />
 
         <div>
-
-          <h2 className="text-lg font-semibold">
+          <h2 className="text-lg font-semibold text-white">
             Launch Information
           </h2>
 
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-[#8B8B8B]">
             Token deployment overview
           </p>
-
         </div>
-
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-
         <InfoCard
           icon={CalendarDays}
           title="Launch Date"
@@ -125,7 +116,7 @@ export default function LaunchInfo({
           icon={Globe}
           title="Blockchain"
           value={blockchain}
-          color="text-green-400"
+          color="text-blue-400"
         />
 
         <InfoCard
@@ -145,109 +136,95 @@ export default function LaunchInfo({
         <InfoCard
           icon={User}
           title="Deployer"
-          value={`${deployer.slice(0, 6)}...${deployer.slice(-6)}`}
-          color="text-pink-400"
+          value={shortDeployer}
+          color="text-[#F5C84C]"
         />
-
       </div>
 
-      <div className="mt-6 rounded-xl border border-zinc-800 bg-[#1B2330] p-5">
-
+      <div className="mt-6 rounded-xl border border-[#292929] bg-[#171717] p-5">
         <div className="mb-4 flex items-center gap-2">
-
           <Timer
-            className="text-cyan-400"
+            className="text-[#D4AF37]"
             size={18}
           />
 
-          <span className="font-semibold">
+          <span className="font-semibold text-white">
             Launch Statistics
           </span>
-
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
+          <Stat
+            label="Initial Liquidity"
+            value={`$${initialLiquidity.toLocaleString()}`}
+          />
 
-          <div>
+          <Stat
+            label="Current Liquidity"
+            value={`$${currentLiquidity.toLocaleString()}`}
+          />
 
-            <div className="text-sm text-zinc-500">
-              Initial Liquidity
-            </div>
-
-            <div className="mt-1 text-lg font-semibold">
-              $
-              {initialLiquidity.toLocaleString()}
-            </div>
-
-          </div>
-
-          <div>
-
-            <div className="text-sm text-zinc-500">
-              Current Liquidity
-            </div>
-
-            <div className="mt-1 text-lg font-semibold">
-              $
-              {currentLiquidity.toLocaleString()}
-            </div>
-
-          </div>
-
-          <div>
-
-            <div className="text-sm text-zinc-500">
-              Launch Price
-            </div>
-
-            <div className="mt-1 text-lg font-semibold">
-              ${launchPrice}
-            </div>
-
-          </div>
-
+          <Stat
+            label="Launch Price"
+            value={`$${launchPrice}`}
+          />
         </div>
-
       </div>
 
-      <div className="mt-6 rounded-xl border border-zinc-800 bg-[#1B2330] p-5">
-
+      <div className="mt-6 rounded-xl border border-[#292929] bg-[#171717] p-5">
         <div className="mb-2 flex items-center justify-between">
-
-          <span className="text-sm text-zinc-400">
+          <span className="text-sm text-[#8B8B8B]">
             Liquidity Growth
           </span>
 
           <span
-            className={`font-semibold ${
+            className={
               liquidityGrowth >= 0
-                ? "text-green-400"
-                : "text-red-400"
-            }`}
+                ? "font-semibold text-green-400"
+                : "font-semibold text-red-400"
+            }
           >
             {liquidityGrowth >= 0 ? "+" : ""}
-            {liquidityGrowthPercent}%
+            {liquidityGrowthPercent.toFixed(1)}%
           </span>
-
         </div>
 
-        <div className="h-3 overflow-hidden rounded-full bg-zinc-800">
-
+        <div className="h-3 overflow-hidden rounded-full bg-[#070707]">
           <div
-            className="h-full rounded-full bg-cyan-500"
+            className={
+              liquidityGrowth >= 0
+                ? "h-full rounded-full bg-[#D4AF37]"
+                : "h-full rounded-full bg-red-500"
+            }
             style={{
               width: `${Math.min(
-                Number(liquidityGrowthPercent),
+                Math.abs(liquidityGrowthPercent),
                 100
               )}%`,
             }}
           />
-
         </div>
-
       </div>
-
     </div>
   );
 }
-```
+
+function Stat({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div>
+      <div className="text-sm text-[#8B8B8B]">
+        {label}
+      </div>
+
+      <div className="mt-1 text-lg font-semibold text-white">
+        {value}
+      </div>
+    </div>
+  );
+}
