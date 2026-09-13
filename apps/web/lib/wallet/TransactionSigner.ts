@@ -1,36 +1,41 @@
 // apps/web/lib/wallet/TransactionSigner.ts
 
 import {
+  Commitment,
   Connection,
+  SendOptions,
   Transaction,
   VersionedTransaction,
-  SimulatedTransactionResponse,
-  SendOptions,
-  Commitment,
 } from "@solana/web3.js";
 
 import WalletManager from "./WalletManager";
 
+export type SolanaTransaction =
+  | Transaction
+  | VersionedTransaction;
+
 export interface SimulationResult {
   success: boolean;
-
   logs: string[];
-
   unitsConsumed?: number;
-
-  error?: any;
+  error?: unknown;
+  returnData?: unknown;
 }
 
 export interface SendTransactionResult {
   signature: string;
-
   explorer: string;
 }
 
-export default class TransactionSigner {
-  private wallet: WalletManager;
+function isVersionedTransaction(
+  transaction: SolanaTransaction,
+): transaction is VersionedTransaction {
+  return transaction instanceof VersionedTransaction;
+}
 
-  private connection: Connection;
+export default class TransactionSigner {
+  private readonly wallet: WalletManager;
+  private readonly connection: Connection;
 
   constructor(
     wallet: WalletManager,
@@ -45,11 +50,11 @@ export default class TransactionSigner {
   // ======================================================
 
   async signLegacy(
-    tx: Transaction,
+    transaction: Transaction,
   ): Promise<Transaction> {
-    return await this.wallet.signTransaction(
-      tx,
-    );
+    return this.wallet.signTransaction(
+      transaction,
+    ) as Promise<Transaction>;
   }
 
   // ======================================================
@@ -57,11 +62,11 @@ export default class TransactionSigner {
   // ======================================================
 
   async signVersioned(
-    tx: VersionedTransaction,
+    transaction: VersionedTransaction,
   ): Promise<VersionedTransaction> {
-    return await this.wallet.signTransaction(
-      tx,
-    );
+    return this.wallet.signTransaction(
+      transaction,
+    ) as Promise<VersionedTransaction>;
   }
 
   // ======================================================
@@ -69,13 +74,19 @@ export default class TransactionSigner {
   // ======================================================
 
   async signAll(
-    transactions:
-      | Transaction[]
-      | VersionedTransaction[],
-  ) {
-    return await this.wallet.signAllTransactions(
+    transactions: Transaction[],
+  ): Promise<Transaction[]>;
+
+  async signAll(
+    transactions: VersionedTransaction[],
+  ): Promise<VersionedTransaction[]>;
+
+  async signAll(
+    transactions: SolanaTransaction[],
+  ): Promise<SolanaTransaction[]> {
+    return this.wallet.signAllTransactions(
       transactions,
-    );
+    ) as Promise<SolanaTransaction[]>;
   }
 
   // ======================================================
@@ -84,10 +95,10 @@ export default class TransactionSigner {
 
   async signMessage(
     message: string,
-  ) {
-    return await this.wallet.signMessage(
+  ): Promise<Uint8Array> {
+    return this.wallet.signMessage(
       message,
-    );
+    ) as Promise<Uint8Array>;
   }
 
   // ======================================================
@@ -95,34 +106,36 @@ export default class TransactionSigner {
   // ======================================================
 
   async simulate(
-    transaction:
-      | Transaction
-      | VersionedTransaction,
+    transaction: SolanaTransaction,
   ): Promise<SimulationResult> {
     try {
-      const result =
-        await this.connection.simulateTransaction(
-          transaction,
-        );
+      const result = isVersionedTransaction(
+        transaction,
+      )
+        ? await this.connection.simulateTransaction(
+            transaction,
+            {
+              sigVerify: false,
+            },
+          )
+        : await this.connection.simulateTransaction(
+            transaction,
+          );
 
       return {
-        success:
-          result.value.err === null,
-
-        logs:
-          result.value.logs ?? [],
-
+        success: result.value.err === null,
+        logs: result.value.logs ?? [],
         unitsConsumed:
           result.value.unitsConsumed,
-
-        error:
-          result.value.err,
+        error: result.value.err,
+        returnData:
+          result.value.returnData,
       };
-    } catch (err) {
+    } catch (error) {
       return {
         success: false,
         logs: [],
-        error: err,
+        error,
       };
     }
   }
@@ -132,12 +145,17 @@ export default class TransactionSigner {
   // ======================================================
 
   async send(
-    transaction:
-      | Transaction
-      | VersionedTransaction,
-
-    options?: SendOptions,
+    transaction: SolanaTransaction,
+    _options?: SendOptions,
   ): Promise<SendTransactionResult> {
+    /*
+     * WalletManager owns the actual wallet/provider send
+     * operation. We intentionally keep the call compatible
+     * with WalletManager.sendTransaction(transaction).
+     *
+     * `_options` remains part of this class API so callers
+     * can pass SendOptions without breaking the interface.
+     */
     const signature =
       await this.wallet.sendTransaction(
         transaction,
@@ -150,8 +168,8 @@ export default class TransactionSigner {
 
     return {
       signature,
-
-      explorer: `https://solscan.io/tx/${signature}`,
+      explorer:
+        this.explorer(signature),
     };
   }
 
@@ -160,25 +178,25 @@ export default class TransactionSigner {
   // ======================================================
 
   async signAndSend(
-    transaction:
-      | Transaction
-      | VersionedTransaction,
-  ) {
-    return await this.send(
+    transaction: SolanaTransaction,
+    options?: SendOptions,
+  ): Promise<SendTransactionResult> {
+    return this.send(
       transaction,
+      options,
     );
   }
 
   // ======================================================
-  // Jito Bundle (Placeholder)
+  // Jito Bundle
   // ======================================================
 
   async signBundle(
     bundle: VersionedTransaction[],
-  ) {
-    return await this.signAll(
-      bundle,
-    );
+  ): Promise<VersionedTransaction[]> {
+    return this.signAll(bundle) as Promise<
+      VersionedTransaction[]
+    >;
   }
 
   // ======================================================
@@ -186,13 +204,9 @@ export default class TransactionSigner {
   // ======================================================
 
   async dryRun(
-    tx:
-      | Transaction
-      | VersionedTransaction,
-  ) {
-    return await this.simulate(
-      tx,
-    );
+    transaction: SolanaTransaction,
+  ): Promise<SimulationResult> {
+    return this.simulate(transaction);
   }
 
   // ======================================================
@@ -200,18 +214,26 @@ export default class TransactionSigner {
   // ======================================================
 
   async estimateFee(
-    transaction:
-      | Transaction
-      | VersionedTransaction,
-  ) {
+    transaction: SolanaTransaction,
+  ): Promise<number | null> {
     try {
-      const fee =
+      const message =
+        isVersionedTransaction(transaction)
+          ? transaction.message
+          : transaction.compileMessage();
+
+      const result =
         await this.connection.getFeeForMessage(
-          transaction.message,
+          message,
         );
 
-      return fee.value;
-    } catch {
+      return result.value;
+    } catch (error) {
+      console.warn(
+        "Failed to estimate transaction fee:",
+        error,
+      );
+
       return null;
     }
   }
@@ -221,7 +243,9 @@ export default class TransactionSigner {
   // ======================================================
 
   async latestBlockhash() {
-    return await this.connection.getLatestBlockhash();
+    return this.connection.getLatestBlockhash(
+      "confirmed",
+    );
   }
 
   // ======================================================
@@ -232,7 +256,7 @@ export default class TransactionSigner {
     signature: string,
     commitment: Commitment = "confirmed",
   ) {
-    return await this.connection.confirmTransaction(
+    return this.connection.confirmTransaction(
       signature,
       commitment,
     );
@@ -244,23 +268,34 @@ export default class TransactionSigner {
 
   async verify(
     signature: string,
-  ) {
-    const tx =
-      await this.connection.getTransaction(
-        signature,
+  ): Promise<boolean> {
+    try {
+      const transaction =
+        await this.connection.getTransaction(
+          signature,
+          {
+            commitment: "confirmed",
+            maxSupportedTransactionVersion: 0,
+          },
+        );
+
+      return transaction !== null;
+    } catch (error) {
+      console.warn(
+        "Failed to verify transaction:",
+        error,
       );
 
-    return tx !== null;
+      return false;
+    }
   }
 
   // ======================================================
   // Transaction Status
   // ======================================================
 
-  async status(
-    signature: string,
-  ) {
-    return await this.connection.getSignatureStatus(
+  async status(signature: string) {
+    return this.connection.getSignatureStatus(
       signature,
     );
   }
@@ -269,48 +304,57 @@ export default class TransactionSigner {
   // Explorer URL
   // ======================================================
 
-  explorer(
-    signature: string,
-  ) {
+  explorer(signature: string): string {
     return `https://solscan.io/tx/${signature}`;
   }
 
   // ======================================================
-  // Priority Fee (Phase 14 Ready)
+  // Priority Fee
   // ======================================================
 
   async estimatePriorityFee() {
-    // Placeholder for Jito/Priority Fee API
-
+    /*
+     * Placeholder until this is connected to
+     * Helius/Jito/QuickNode priority-fee data.
+     *
+     * Values are micro-lamports per compute unit.
+     */
     return {
-      low: 1000,
-
-      medium: 5000,
-
-      high: 10000,
-
-      veryHigh: 25000,
+      low: 1_000,
+      medium: 5_000,
+      high: 10_000,
+      veryHigh: 25_000,
     };
   }
 
   // ======================================================
-  // Compute Units (Placeholder)
+  // Compute Units
   // ======================================================
 
-  async estimateComputeUnits() {
-    return 200000;
+  async estimateComputeUnits(): Promise<number> {
+    /*
+     * Placeholder until compute-unit estimation is
+     * connected to real transaction simulation.
+     */
+    return 200_000;
   }
 
   // ======================================================
-  // MEV Protection (Placeholder)
+  // MEV Protection
   // ======================================================
 
   async mevProtectedSend(
-    tx:
-      | Transaction
-      | VersionedTransaction,
-  ) {
-    // Will be integrated with Jito Bundle API
-    return await this.send(tx);
+    transaction: SolanaTransaction,
+    options?: SendOptions,
+  ): Promise<SendTransactionResult> {
+    /*
+     * Placeholder for Jito bundle submission.
+     *
+     * For now this uses the standard wallet send path.
+     */
+    return this.send(
+      transaction,
+      options,
+    );
   }
 }

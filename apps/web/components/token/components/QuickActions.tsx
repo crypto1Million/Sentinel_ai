@@ -29,6 +29,39 @@ interface QuickActionsProps {
   onRugRadar?: () => void;
 }
 
+interface ActionButtonProps {
+  icon: ElementType;
+  title: string;
+  color?: string;
+  onClick?: () => void;
+}
+
+function ActionButton({
+  icon: Icon,
+  title,
+  color = "text-[#8B8B8B]",
+  onClick,
+}: ActionButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-lg border border-[#292929] bg-[#171717] p-4 transition hover:border-[#8C6D1F] hover:bg-[#1F1A0F]"
+    >
+      <div className="flex flex-col items-center gap-3">
+        <Icon
+          size={22}
+          className={color}
+        />
+
+        <span className="text-sm font-medium text-white">
+          {title}
+        </span>
+      </div>
+    </button>
+  );
+}
+
 export default function QuickActions({
   contract,
   explorerUrl,
@@ -71,21 +104,37 @@ export default function QuickActions({
         <ActionButton
           icon={Star}
           title={favorite ? "Favorited" : "Favorite"}
-          color={favorite ? "text-[#F5C84C]" : undefined}
-          onClick={() => setFavorite((current) => !current)}
+          color={
+            favorite
+              ? "text-[#F5C84C]"
+              : undefined
+          }
+          onClick={() =>
+            setFavorite((value) => !value)
+          }
         />
 
         <ActionButton
           icon={watching ? Eye : EyeOff}
           title={watching ? "Watching" : "Watchlist"}
-          color={watching ? "text-[#D4AF37]" : undefined}
-          onClick={() => setWatching((current) => !current)}
+          color={
+            watching
+              ? "text-[#D4AF37]"
+              : undefined
+          }
+          onClick={() =>
+            setWatching((value) => !value)
+          }
         />
 
         <ActionButton
           icon={Copy}
           title={copied ? "Copied" : "Copy Contract"}
-          color={copied ? "text-green-400" : undefined}
+          color={
+            copied
+              ? "text-green-400"
+              : undefined
+          }
           onClick={copyContract}
         />
 
@@ -94,7 +143,7 @@ export default function QuickActions({
             href={explorerUrl}
             target="_blank"
             rel="noreferrer"
-            className="rounded-lg border border-[#292929] bg-[#171717] p-4 transition hover:border-[#8C6D1F] hover:bg-[#1f1a0f]"
+            className="rounded-lg border border-[#292929] bg-[#171717] p-4 transition hover:border-[#8C6D1F] hover:bg-[#1F1A0F]"
           >
             <div className="flex items-center gap-3">
               <ExternalLink
@@ -114,7 +163,7 @@ export default function QuickActions({
             href={dexUrl}
             target="_blank"
             rel="noreferrer"
-            className="rounded-lg border border-[#292929] bg-[#171717] p-4 transition hover:border-[#8C6D1F] hover:bg-[#1f1a0f]"
+            className="rounded-lg border border-[#292929] bg-[#171717] p-4 transition hover:border-[#8C6D1F] hover:bg-[#1F1A0F]"
           >
             <div className="flex items-center gap-3">
               <Share2
@@ -174,38 +223,5 @@ export default function QuickActions({
         />
       </div>
     </div>
-  );
-}
-
-interface ActionButtonProps {
-  icon: ElementType;
-  title: string;
-  color?: string;
-  onClick?: () => void;
-}
-
-function ActionButton({
-  icon: Icon,
-  title,
-  color = "text-[#8B8B8B]",
-  onClick,
-}: ActionButtonProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="rounded-lg border border-[#292929] bg-[#171717] p-4 transition hover:border-[#8C6D1F] hover:bg-[#1f1a0f]"
-    >
-      <div className="flex flex-col items-center gap-3">
-        <Icon
-          size={22}
-          className={color}
-        />
-
-        <span className="text-sm font-medium text-white">
-          {title}
-        </span>
-      </div>
-    </button>
   );
 }

@@ -5,11 +5,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Search,
-  ChevronDown,
   Bell,
   UserRound,
   Wallet,
 } from "lucide-react";
+
+import ChainSelector from "@/components/ChainSelector/ChainSelector";
+import { useChainStore } from "@/store/chainStore";
 
 const navigation = [
   {
@@ -59,8 +61,8 @@ export default function Navbar() {
           className="mr-6 flex shrink-0 items-center gap-2.5"
         >
           <Image
-            src="/brand/sentinel%20icon.png"
-            alt="SentinelAI"
+            src="/brand/sentinellogo.svg"
+            alt="Sentinel"
             width={34}
             height={34}
             priority
@@ -68,8 +70,8 @@ export default function Navbar() {
           />
 
           <Image
-            src="/brand/sentinel%20wordtext.png"
-            alt="SentinelAI"
+            src="/brand/sentinellogoword.svg"
+            alt="Sentinel"
             width={112}
             height={30}
             priority
@@ -137,33 +139,7 @@ export default function Navbar() {
 
           {/* Chain Selector */}
 
-          <button
-            type="button"
-            className="
-              hidden
-              items-center
-              gap-2
-              rounded-lg
-              border
-              border-[#292929]
-              bg-[#101010]
-              px-3
-              py-2
-              text-sm
-              text-white
-              transition-colors
-              hover:border-[#D4AF37]
-              sm:flex
-            "
-          >
-            <span className="h-2 w-2 rounded-full bg-[#39E58C]" />
-
-            <span>
-              Solana
-            </span>
-
-            <ChevronDown size={14} className="text-[#8B8B8B]" />
-          </button>
+          <ChainSelector />
 
           {/* Wallet Balance */}
 

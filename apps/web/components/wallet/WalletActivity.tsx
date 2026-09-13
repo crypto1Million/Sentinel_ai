@@ -344,7 +344,7 @@ function TypeBadge({
   return (
     <span className="rounded bg-cyan-700 px-2 py-1 text-xs font-semibold">
 
-      {type.replaceAll("_", " ")}
+      {String(type).replace(/_/g, " ")}
 
     </span>
   );

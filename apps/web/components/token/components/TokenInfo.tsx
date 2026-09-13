@@ -8,6 +8,9 @@ import SecurityStatus from "./SecurityStatus";
 import LaunchInfo from "./LaunchInfo";
 import DeployerCard from "./DeployerCard";
 import QuickActions from "./QuickActions";
+import LiquidityPanel from "./LiquidityPanel";
+import HolderDistribution from "./HolderDistribution";
+import TokenMetrics from "./TokenMetrics";
 
 export interface TokenInfoProps {
   logo: string;
@@ -57,6 +60,48 @@ export interface TokenInfoProps {
 
   explorerUrl?: string;
   dexUrl?: string;
+
+  // Extended metrics.
+  // Optional so existing TokenInfo callers do not break.
+  fdv?: number;
+
+  volume5m?: number;
+  volume1h?: number;
+
+  buys?: number;
+  sells?: number;
+
+  buyVolume?: number;
+  sellVolume?: number;
+
+  uniqueBuyers?: number;
+  uniqueSellers?: number;
+
+  smartMoneyPercent?: number;
+  freshWalletPercent?: number;
+  whalePercent?: number;
+  insiderPercent?: number;
+  sniperPercent?: number;
+  bundledPercent?: number;
+
+  top10Percent?: number;
+  top25Percent?: number;
+
+  devHolding?: number;
+
+  lpLockedPercent?: number;
+  lpBurnedPercent?: number;
+
+  ath?: number;
+  atl?: number;
+
+  change5m?: number;
+  change1h?: number;
+  change24h?: number;
+
+  // Holder distribution.
+  exchangePercent?: number;
+  othersPercent?: number;
 }
 
 export default function TokenInfo({
@@ -65,15 +110,18 @@ export default function TokenInfo({
   symbol,
   verified,
   contract,
+
   website,
   telegram,
   twitter,
   github,
+
   price,
   marketCap,
   holders,
   liquidity,
   volume24h,
+
   mintAuthority,
   freezeAuthority,
   lpLocked,
@@ -82,6 +130,7 @@ export default function TokenInfo({
   renounced,
   honeypot,
   securityScore,
+
   launchDate,
   tokenAge,
   blockchain,
@@ -91,6 +140,7 @@ export default function TokenInfo({
   initialLiquidity,
   currentLiquidity,
   launchPrice,
+
   deployerVerified,
   reputationScore,
   totalTokens,
@@ -99,8 +149,48 @@ export default function TokenInfo({
   winRate,
   currentHoldings,
   soldPercentage,
+
   explorerUrl,
   dexUrl,
+
+  fdv = marketCap,
+
+  volume5m = 0,
+  volume1h = 0,
+
+  buys = 0,
+  sells = 0,
+
+  buyVolume = 0,
+  sellVolume = 0,
+
+  uniqueBuyers = 0,
+  uniqueSellers = 0,
+
+  smartMoneyPercent = 0,
+  freshWalletPercent = 0,
+  whalePercent = 0,
+  insiderPercent = 0,
+  sniperPercent = 0,
+  bundledPercent = 0,
+
+  top10Percent = 0,
+  top25Percent = 0,
+
+  devHolding = 0,
+
+  lpLockedPercent = lpLocked ? 100 : 0,
+  lpBurnedPercent = lpBurned ? 100 : 0,
+
+  ath = price,
+  atl = price,
+
+  change5m = 0,
+  change1h = 0,
+  change24h = 0,
+
+  exchangePercent = 0,
+  othersPercent = 100,
 }: TokenInfoProps) {
   return (
     <div className="space-y-6">
@@ -130,7 +220,7 @@ export default function TokenInfo({
         contract={contract}
       />
 
-      {/* Stats */}
+      {/* Summary stats */}
 
       <TokenStats
         price={price}
@@ -140,24 +230,97 @@ export default function TokenInfo({
         volume24h={volume24h}
       />
 
-      {/* Quick Actions */}
+      {/* Detailed token metrics */}
+
+      <TokenMetrics
+        price={price}
+        marketCap={marketCap}
+        fdv={fdv}
+        liquidity={liquidity}
+        volume5m={volume5m}
+        volume1h={volume1h}
+        volume24h={volume24h}
+        buys={buys}
+        sells={sells}
+        buyVolume={buyVolume}
+        sellVolume={sellVolume}
+        holders={holders}
+        uniqueBuyers={uniqueBuyers}
+        uniqueSellers={uniqueSellers}
+        smartMoneyPercent={smartMoneyPercent}
+        freshWalletPercent={freshWalletPercent}
+        whalePercent={whalePercent}
+        insiderPercent={insiderPercent}
+        sniperPercent={sniperPercent}
+        bundledPercent={bundledPercent}
+        top10Percent={top10Percent}
+        top25Percent={top25Percent}
+        devHolding={devHolding}
+        lpLockedPercent={lpLockedPercent}
+        lpBurnedPercent={lpBurnedPercent}
+        ath={ath}
+        atl={atl}
+        change5m={change5m}
+        change1h={change1h}
+        change24h={change24h}
+      />
+
+      {/* Liquidity */}
+
+      <LiquidityPanel
+        currentLiquidity={currentLiquidity}
+        initialLiquidity={initialLiquidity}
+        liquidityLocked={lpLocked ? 100 : 0}
+        liquidityBurned={lpBurned ? 100 : 0}
+        liquidityAdded24h={0}
+        liquidityRemoved24h={0}
+        buyWall={0}
+        sellWall={0}
+        liquidityHealth={securityScore}
+        exitLiquidityScore={securityScore}
+        migrationDetected={false}
+        liquidityProviders={0}
+        lpHolders={0}
+        topLPHolder={0}
+        rugRisk={Math.max(0, 100 - securityScore)}
+      />
+
+      {/* Holder distribution */}
+
+      <HolderDistribution
+        totalHolders={holders}
+        top10Percent={top10Percent}
+        top25Percent={top25Percent}
+        smartMoneyPercent={smartMoneyPercent}
+        whalePercent={whalePercent}
+        freshWalletPercent={freshWalletPercent}
+        insiderPercent={insiderPercent}
+        sniperPercent={sniperPercent}
+        deployerPercent={devHolding}
+        lpPercent={0}
+        burnedPercent={0}
+        exchangePercent={exchangePercent}
+        othersPercent={othersPercent}
+      />
+
+      {/* Quick actions */}
 
       <QuickActions
         contract={contract}
         explorerUrl={explorerUrl}
         dexUrl={dexUrl}
-        onAIAnalysis={() =>
-          console.log("AI Analysis")
-        }
-        onReplay={() =>
-          console.log("Replay")
-        }
-        onWalletDNA={() =>
-          console.log("Wallet DNA")
-        }
-        onRugRadar={() =>
-          console.log("Rug Radar")
-        }
+        onAIAnalysis={() => {
+          console.log("AI Analysis");
+        }}
+        onReplay={() => {
+          console.log("Replay");
+        }}
+        onWalletDNA={() => {
+          console.log("Wallet DNA");
+        }}
+        onRugRadar={() => {
+          console.log("Rug Radar");
+        }}
       />
 
       {/* Security */}

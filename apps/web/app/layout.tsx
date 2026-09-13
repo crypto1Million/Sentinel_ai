@@ -11,23 +11,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-
-        <div className="flex h-screen bg-black text-white">
-
+        <div className="min-h-screen bg-[#070707] text-white">
           <Sidebar />
 
-          <div className="flex flex-col flex-1">
-
+          <div className="ml-64 flex min-h-screen flex-col">
             <Navbar />
 
-            <main className="p-6 overflow-y-auto flex-1">
+            <main className="flex-1 overflow-y-auto p-6">
               {children}
             </main>
-
           </div>
-
         </div>
-
       </body>
     </html>
   );

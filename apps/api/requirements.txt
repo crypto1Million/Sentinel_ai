@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+pydantic-settings
+python-dotenv
+httpx
+requests
+web3==7.16.0

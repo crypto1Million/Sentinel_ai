@@ -1,4 +1,3 @@
-id="rug8qa"
 "use client";
 
 import {

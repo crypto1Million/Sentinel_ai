@@ -1,4 +1,3 @@
-id="positions7x"
 "use client";
 
 import {
