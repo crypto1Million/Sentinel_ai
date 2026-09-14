@@ -20,6 +20,8 @@ from websocket.wallet_stream import router as wallet_ws
 
 from websocket.score_stream import router as score_ws
 
+from routes.chains import router as chains_router
+
 
 logger = setup_logging()
 
@@ -107,4 +109,10 @@ app.include_router(
 
 app.include_router(
     score_ws
+)
+
+app.include_router(
+    chains_router,
+    prefix="/chains",
+    tags=["chains"],
 )

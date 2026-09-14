@@ -71,3 +71,15 @@ AERODROME_FACTORY_ADDRESS: str = (
 AERODROME_ROUTER_ADDRESS: str = (
     "0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43"
 )    
+
+ROBINHOOD_RPC_URL: str = ""
+
+JUPITER_API_KEY: str = ""
+
+PLATFORM_FEE_BPS: int = 50
+
+SOLANA_RPC_URL: str = ""
+BASE_RPC_URL: str = "https://mainnet.base.org"
+ETHEREUM_RPC_URL: str = ""
+BNB_RPC_URL: str = ""
+ROBINHOOD_RPC_URL: str = ""

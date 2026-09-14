@@ -57,10 +57,10 @@ const CHAINS: ChainOption[] = [
   },
   {
     id: "robinhood",
-    name: "Robinhood",
-    symbol: "ETH",
+    name: "Robinhood Chain",
+    symbol: "HOOD",
     iconUrl: "https://cdn.simpleicons.org/robinhood",
-  },
+  }
 ];
 
 const EVM_NETWORKS: Partial<
