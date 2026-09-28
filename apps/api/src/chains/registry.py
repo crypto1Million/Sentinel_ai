@@ -16,6 +16,7 @@ CHAIN_CONFIGS: dict[Chain, ChainConfig] = {
         native_symbol="SOL",
         rpc_env="SOLANA_RPC_URL",
         explorer_url="https://solscan.io",
+        enabled=True,
     ),
 
     Chain.BASE: ChainConfig(
@@ -26,6 +27,7 @@ CHAIN_CONFIGS: dict[Chain, ChainConfig] = {
         native_symbol="ETH",
         rpc_env="BASE_RPC_URL",
         explorer_url="https://basescan.org",
+        enabled=True,
     ),
 
     Chain.ETHEREUM: ChainConfig(
@@ -36,6 +38,7 @@ CHAIN_CONFIGS: dict[Chain, ChainConfig] = {
         native_symbol="ETH",
         rpc_env="ETHEREUM_RPC_URL",
         explorer_url="https://etherscan.io",
+        enabled=True,
     ),
 
     Chain.BNB: ChainConfig(
@@ -46,22 +49,25 @@ CHAIN_CONFIGS: dict[Chain, ChainConfig] = {
         native_symbol="BNB",
         rpc_env="BNB_RPC_URL",
         explorer_url="https://bscscan.com",
+        enabled=True,
     ),
 
     Chain.ROBINHOOD: ChainConfig(
-       id=Chain.ROBINHOOD,
-       name="Robinhood Chain",
-       chain_type=ChainType.EVM,
-       chain_id=4663,
-       native_symbol="ETH",
-       rpc_env="ROBINHOOD_RPC_URL",
-       explorer_url="https://robinhoodchain.blockscout.com",
-       enabled=True,
+        id=Chain.ROBINHOOD,
+        name="Robinhood Chain",
+        chain_type=ChainType.EVM,
+        chain_id=4663,
+        native_symbol="ETH",
+        rpc_env="ROBINHOOD_RPC_URL",
+        explorer_url="https://robinhoodchain.blockscout.com",
+        enabled=True,
     ),
 }
 
 
-def get_chain_config(chain: Chain) -> ChainConfig:
+def get_chain_config(
+    chain: Chain,
+) -> ChainConfig:
     config = CHAIN_CONFIGS.get(chain)
 
     if config is None:

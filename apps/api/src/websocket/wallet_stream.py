@@ -1,10 +1,9 @@
-import asyncio
+from __future__ import annotations
 
-from fastapi import APIRouter
-from fastapi import WebSocket
+from fastapi import APIRouter, WebSocket
 from fastapi import WebSocketDisconnect
 
-from websocket.manager import manager
+from realtime.bus import get_realtime_bus
 
 
 router = APIRouter()
@@ -14,40 +13,29 @@ router = APIRouter()
     "/ws/wallets"
 )
 async def wallet_stream(
-    websocket: WebSocket
-):
+    websocket: WebSocket,
+) -> None:
+    await websocket.accept()
 
-    await manager.connect(
-        websocket
-    )
+    bus = get_realtime_bus()
 
     try:
-
-        while True:
-
-            data = {
-
-                "type":
-                "wallet_update",
-
-                "wallet":
-                "ABC123",
-
-                "classification":
-                "SMART_MONEY",
-
-                "action":
-                "BUY"
+        async for event in bus.subscribe(
+            event_types={
+                "wallet.updated",
             }
-
+        ):
             await websocket.send_json(
-                data
+                event.to_wire()
             )
 
-            await asyncio.sleep(3)
-
     except WebSocketDisconnect:
+        return
 
-        manager.disconnect(
-            websocket
-        )
+    except Exception:
+        try:
+            await websocket.close(
+                code=1011
+            )
+        except Exception:
+            pass

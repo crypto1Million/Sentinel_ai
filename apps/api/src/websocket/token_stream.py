@@ -1,10 +1,9 @@
-import asyncio
+from __future__ import annotations
 
-from fastapi import APIRouter
-from fastapi import WebSocket
+from fastapi import APIRouter, WebSocket
 from fastapi import WebSocketDisconnect
 
-from websocket.manager import manager
+from realtime.bus import get_realtime_bus
 
 
 router = APIRouter()
@@ -14,40 +13,33 @@ router = APIRouter()
     "/ws/tokens"
 )
 async def token_stream(
-    websocket: WebSocket
-):
+    websocket: WebSocket,
+) -> None:
+    await websocket.accept()
 
-    await manager.connect(
-        websocket
-    )
+    bus = get_realtime_bus()
 
     try:
-
-        while True:
-
-            data = {
-
-                "type":
-                "token_update",
-
-                "market_cap":
-                100000,
-
-                "volume":
-                50000,
-
-                "holders":
-                1200
+        async for event in bus.subscribe(
+            event_types={
+                "token.updated",
+                "pool.updated",
+                "launchpad.detected",
             }
-
+        ):
             await websocket.send_json(
-                data
+                event.to_wire()
             )
 
-            await asyncio.sleep(2)
-
     except WebSocketDisconnect:
+        return
 
-        manager.disconnect(
-            websocket
-        )
+    except Exception:
+        # Client disconnects or transport errors should
+        # not terminate the entire API process.
+        try:
+            await websocket.close(
+                code=1011
+            )
+        except Exception:
+            pass

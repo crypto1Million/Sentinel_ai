@@ -1,10 +1,9 @@
-import asyncio
+from __future__ import annotations
 
-from fastapi import APIRouter
-from fastapi import WebSocket
+from fastapi import APIRouter, WebSocket
 from fastapi import WebSocketDisconnect
 
-from websocket.manager import manager
+from realtime.bus import get_realtime_bus
 
 
 router = APIRouter()
@@ -14,40 +13,29 @@ router = APIRouter()
     "/ws/scores"
 )
 async def score_stream(
-    websocket: WebSocket
-):
+    websocket: WebSocket,
+) -> None:
+    await websocket.accept()
 
-    await manager.connect(
-        websocket
-    )
+    bus = get_realtime_bus()
 
     try:
-
-        while True:
-
-            data = {
-
-                "type":
-                "score_update",
-
-                "token":
-                "ROCHI",
-
-                "sentinel_score":
-                92,
-
-                "grade":
-                "S"
+        async for event in bus.subscribe(
+            event_types={
+                "score.updated",
             }
-
+        ):
             await websocket.send_json(
-                data
+                event.to_wire()
             )
 
-            await asyncio.sleep(5)
-
     except WebSocketDisconnect:
+        return
 
-        manager.disconnect(
-            websocket
-        )
+    except Exception:
+        try:
+            await websocket.close(
+                code=1011
+            )
+        except Exception:
+            pass

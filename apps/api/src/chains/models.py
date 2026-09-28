@@ -1,80 +1,49 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
 from enum import Enum
-
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-
-
-router = APIRouter()
+from typing import Any, Protocol
 
 
 class Chain(str, Enum):
     SOLANA = "solana"
     BASE = "base"
+    ETHEREUM = "ethereum"
+    BNB = "bnb"
     ROBINHOOD = "robinhood"
 
 
-class QuoteRequest(BaseModel):
-    chain: Chain
-    input_token: str
-    output_token: str
-    amount: str
+class ChainType(str, Enum):
+    SOLANA = "solana"
+    EVM = "evm"
 
 
-class SwapRequest(BaseModel):
-    chain: Chain
-    input_token: str
-    output_token: str
-    amount: str
-    wallet: str
-    slippage_bps: int = 50
+@dataclass(frozen=True)
+class ChainConfig:
+    id: Chain
+    name: str
+    chain_type: ChainType
+    chain_id: int | None
+    native_symbol: str
+    rpc_env: str
+    explorer_url: str
+    enabled: bool = True
 
 
-@router.post("/quote")
-async def quote(
-    request: QuoteRequest,
-):
-    if request.chain == Chain.SOLANA:
-        return {
-            "status": "ok",
-            "chain": "solana",
-            "input_token": request.input_token,
-            "output_token": request.output_token,
-            "amount": request.amount,
-        }
+class ChainAdapter(Protocol):
+    config: ChainConfig
 
-    if request.chain == Chain.BASE:
-        return {
-            "status": "ready",
-            "chain": "base",
-            "input_token": request.input_token,
-            "output_token": request.output_token,
-            "amount": request.amount,
-            "execution": "aerodrome",
-        }
+    async def quote(
+        self,
+        input_token: str,
+        output_token: str,
+        amount: str,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        ...
 
-    raise HTTPException(
-        status_code=400,
-        detail="Unsupported chain",
-    )
-
-
-@router.post("/swap")
-async def swap(
-    request: SwapRequest,
-):
-    if request.chain == Chain.BASE:
-        return {
-            "status": "awaiting_signature",
-            "chain": "base",
-            "wallet": request.wallet,
-            "message": (
-                "Unsigned Base transaction "
-                "must be built and signed by "
-                "the user's wallet."
-            ),
-        }
-
-    return {
-        "status": "pending",
-        "chain": "solana",
-    }
+    async def execute(
+        self,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        ...
