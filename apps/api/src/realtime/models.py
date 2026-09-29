@@ -15,16 +15,59 @@ EventType = Literal[
     "pool.updated",
     "launchpad.detected",
     "system.updated",
+    "chain.observed",
 ]
+
+
+EventStatus = Literal[
+    "observed",
+    "derived",
+    "model_derived",
+    "unresolved",
+    "conflict",
+]
+
+
+class ChainPosition(BaseModel):
+    """
+    Blockchain position associated with an observed event.
+
+    Depending on chain:
+    - Solana: slot
+    - EVM: block_number
+    """
+
+    block_number: int | None = None
+    block_hash: str | None = None
+
+    slot: int | None = None
+
+    transaction_hash: str | None = None
+    transaction_signature: str | None = None
+
+    instruction_index: int | None = None
+    log_index: int | None = None
+
+    commitment: str | None = None
+
+
+class EventEvidence(BaseModel):
+    """
+    Evidence supporting an event or attribution.
+    """
+
+    type: str
+    value: str
+    source: str | None = None
 
 
 class RealtimeEvent(BaseModel):
     """
-    Canonical realtime event exchanged between SentinelAI
-    backend services and the websocket layer.
+    Canonical SentinelAI realtime event.
 
-    This object contains metadata about where the event came from.
-    It does not invent domain values.
+    Facts should be observed directly.
+    Derived/model-generated values must identify themselves
+    through `status` and provenance.
     """
 
     event_id: str = Field(
@@ -46,27 +89,36 @@ class RealtimeEvent(BaseModel):
     source_id: str | None = None
 
     observed_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc)
+        default_factory=lambda: datetime.now(
+            timezone.utc
+        )
     )
 
     processed_at: datetime | None = None
 
-    status: Literal[
-        "observed",
-        "derived",
-        "model_derived",
-        "unresolved",
-        "conflict",
-    ] = "observed"
+    chain_position: ChainPosition | None = None
+
+    evidence: list[EventEvidence] = Field(
+        default_factory=list
+    )
+
+    parser_name: str | None = None
+    parser_version: str | None = None
+
+    model_name: str | None = None
+    model_version: str | None = None
+
+    parent_event_ids: list[str] = Field(
+        default_factory=list
+    )
+
+    status: EventStatus = "observed"
 
     version: int = 1
 
     def with_processed_timestamp(
         self,
     ) -> "RealtimeEvent":
-        """
-        Return a copy containing the backend processing timestamp.
-        """
         return self.model_copy(
             update={
                 "processed_at": datetime.now(
@@ -76,9 +128,6 @@ class RealtimeEvent(BaseModel):
         )
 
     def age_ms(self) -> float:
-        """
-        Age of the observed event relative to now.
-        """
         now = datetime.now(timezone.utc)
 
         observed = self.observed_at
@@ -97,16 +146,13 @@ class RealtimeEvent(BaseModel):
         )
 
     def to_wire(self) -> dict[str, Any]:
-        """
-        Wire representation sent over websocket.
-        """
-        event = self.model_dump(
+        data = self.model_dump(
             mode="json"
         )
 
-        event["age_ms"] = round(
+        data["age_ms"] = round(
             self.age_ms(),
             2,
         )
 
-        return event
+        return data

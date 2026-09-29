@@ -395,3 +395,24 @@ def get_settings() -> Settings:
     Return the singleton SentinelAI configuration.
     """
     return Settings()
+
+# =========================================================
+# REDIS
+# =========================================================
+
+REDIS_HOST: str = "localhost"
+REDIS_PORT: int = 6379
+REDIS_PASSWORD: str = ""
+REDIS_DB: int = 0
+
+REDIS_STREAM_PREFIX: str = "sentinel"
+REDIS_EVENT_STREAM: str = "events"
+
+# Redis Stream retention.
+# This controls the approximate maximum number of events
+# retained in the canonical stream.
+REDIS_STREAM_MAXLEN: int = 1_000_000
+
+# XREAD/XREADGROUP behavior.
+REDIS_STREAM_BLOCK_MS: int = 5_000
+REDIS_STREAM_READ_COUNT: int = 100    

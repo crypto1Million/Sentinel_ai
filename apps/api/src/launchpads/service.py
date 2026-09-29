@@ -1,54 +1,166 @@
 from __future__ import annotations
 
-from chains.models import Chain
-
-from launchpads.models import LaunchpadConfig
-from launchpads.registry import (
-    get_launchpad,
-    get_launchpads,
+from launchpads.attribution import (
+    LaunchpadAttributor,
 )
 
+from launchpads.detectors.evm import (
+    EVMLaunchpadDetector,
+)
 
-class LaunchpadService:
+from launchpads.detectors.solana import (
+    SolanaLaunchpadDetector,
+)
 
-    def list(
-        self,
-        chain: Chain | None = None,
-    ) -> list[LaunchpadConfig]:
-        return get_launchpads(
-            chain=chain,
-            active_only=True,
+from launchpads.models import (
+    LaunchpadMatch,
+    LaunchpadObservation,
+)
+
+from launchpads.registry import (
+    get_enabled_launchpads_for_chain,
+)
+
+from chains.models import Chain
+
+
+class LaunchpadAttributionService:
+
+    def __init__(self) -> None:
+
+        self.attributor = (
+            LaunchpadAttributor()
         )
 
     def resolve(
         self,
-        chain: Chain,
-        slug: str,
-    ) -> LaunchpadConfig:
-        return get_launchpad(
-            chain=chain,
-            slug=slug,
+        observation: LaunchpadObservation,
+    ) -> LaunchpadMatch:
+
+        try:
+            chain = Chain(observation.chain)
+        except ValueError:
+
+            return LaunchpadMatch(
+                status="UNAVAILABLE",
+                chain=observation.chain,
+                token_address=observation.token_address,
+                reason=(
+                    "Unsupported chain for launchpad "
+                    "attribution."
+                ),
+                observed_at=observation.observed_at,
+                transaction_signature=(
+                    observation.transaction_signature
+                ),
+            )
+
+        configs = (
+            get_enabled_launchpads_for_chain(chain)
         )
 
-    def serialize(
-        self,
-        launchpad: LaunchpadConfig,
-    ) -> dict:
-        return {
-            "slug": launchpad.slug,
-            "name": launchpad.name,
-            "chain": launchpad.chain.value,
-            "type": launchpad.launchpad_type.value,
-            "website": launchpad.website,
-            "discovery_method": (
-                launchpad.discovery_method.value
+        if chain == Chain.SOLANA:
+
+            detector = SolanaLaunchpadDetector(
+                configs
+            )
+
+        else:
+
+            detector = EVMLaunchpadDetector(
+                configs
+            )
+
+        candidates = detector.detect(
+            observation
+        )
+
+        # ----------------------------------------------------------
+        # Authoritative indexed partner metadata.
+        #
+        # This is intentionally exact.
+        # It NEVER does:
+        #   "Meteora => Jupiter"
+        #   "Meteora => Believe"
+        #   "Meteora => Bags"
+        # ----------------------------------------------------------
+        if observation.authoritative_partner_id:
+
+            partner_id = (
+                observation.authoritative_partner_id
+            )
+
+            partner_candidates = [
+
+                config
+                for config in configs
+                if (
+                    config.id == partner_id
+                    and config.requires_authoritative_partner_metadata
+                )
+            ]
+
+            for config in partner_candidates:
+
+                # Only accept it when a real authoritative
+                # partner mapping was supplied by upstream.
+                candidates.append(
+                    self._partner_candidate(
+                        config,
+                        observation,
+                    )
+                )
+
+        return self.attributor.resolve(
+            observation,
+            candidates,
+        )
+
+    @staticmethod
+    def _partner_candidate(
+        config,
+        observation,
+    ):
+
+        from launchpads.models import (
+            EvidenceType,
+            LaunchpadCandidate,
+            LaunchpadEvidence,
+        )
+
+        return LaunchpadCandidate(
+            launchpad_id=config.id,
+            launchpad_name=config.name,
+            chain=config.chain,
+            matched_by=(
+                config.detection_mode
             ),
-            "active": launchpad.active,
-            "program_ids": list(
-                launchpad.program_ids
+            matched_value=(
+                observation.authoritative_partner_id
+                or config.id
             ),
-            "contract_addresses": list(
-                launchpad.contract_addresses
-            ),
-            "notes": launchpad.notes,
-        }
+            priority=config.priority,
+            evidence=[
+                LaunchpadEvidence(
+                    evidence_type=(
+                        EvidenceType.AUTHORITY_METADATA
+                    ),
+                    value=(
+                        observation.authoritative_partner_id
+                        or config.id
+                    ),
+                    chain=observation.chain,
+                    transaction_signature=(
+                        observation.transaction_signature
+                    ),
+                    block_number=(
+                        observation.block_number
+                    ),
+                    slot=observation.slot,
+                    source=observation.source,
+                    observed_at=(
+                        observation.observed_at
+                    ),
+                )
+            ],
+        )

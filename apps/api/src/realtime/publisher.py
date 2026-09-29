@@ -18,10 +18,11 @@ async def publish_event(
     status: str = "observed",
 ) -> RealtimeEvent:
     """
-    Publish one canonical SentinelAI realtime event.
+    Publish one canonical SentinelAI event.
 
-    This is the entry point that future ingestion,
-    intelligence, scoring and alert services should use.
+    The event itself remains the domain object.
+    Redis Stream ID is transport metadata and can be used
+    later for checkpoints/replay.
     """
 
     event = RealtimeEvent(
