@@ -1,5 +1,4 @@
 from state.models import (
-    ChainId,
     DeveloperState,
     LaunchpadState,
     PoolState,
@@ -9,13 +8,10 @@ from state.models import (
     WalletState,
 )
 
-from state.service import (
-    CanonicalStateService,
-)
+from state.service import StateService
+
 
 __all__ = [
-    "CanonicalStateService",
-    "ChainId",
     "DeveloperState",
     "LaunchpadState",
     "PoolState",
@@ -23,4 +19,5 @@ __all__ = [
     "StateStatus",
     "TokenState",
     "WalletState",
+    "StateService",
 ]

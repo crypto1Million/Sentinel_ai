@@ -25,6 +25,20 @@ EventStatus = Literal[
     "model_derived",
     "unresolved",
     "conflict",
+    
+    # Intelligence events
+    "rug.updated",
+    "market_intelligence.updated",
+    "wallet_dna.updated",
+    "j7.updated",
+    "narrative.updated",
+
+    # Scoring / alerts
+    "score.updated",
+    "alert.created",
+
+    # System
+    "system.updated",
 ]
 
 

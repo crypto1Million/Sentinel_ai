@@ -1,297 +1,360 @@
 from __future__ import annotations
 
-import json
-from typing import Any
+from datetime import datetime, timezone
+from decimal import Decimal
+from typing import Any, Callable, TypeVar
 
-from redis.asyncio import Redis
-
-from config.settings import get_settings
 from state.models import (
     DeveloperState,
     LaunchpadState,
     PoolState,
+    StateMeta,
+    StateStatus,
     TokenState,
     WalletState,
 )
+from state.postgres_store import PostgresStateStore
+from state.redis_store import RedisStateStore
+
+
+T = TypeVar("T")
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 class StateService:
     """
-    Current-state storage for SentinelAI.
+    Canonical SentinelAI state service.
 
-    Redis contains the latest canonical state.
-    Historical events remain in the event stream/database.
+    Redis:
+        current state
+
+    PostgreSQL:
+        append-only state history
     """
 
     def __init__(
         self,
-        redis_client: Redis | None = None,
+        redis_store: RedisStateStore | None = None,
+        postgres_store: PostgresStateStore | None = None,
     ) -> None:
-        settings = get_settings()
 
         self.redis = (
-            redis_client
-            if redis_client is not None
-            else Redis.from_url(
-                (
-                    f"redis://"
-                    f"{settings.REDIS_HOST}:"
-                    f"{settings.REDIS_PORT}/"
-                    f"{settings.REDIS_DB}"
-                ),
-                decode_responses=True,
-            )
+            redis_store
+            or RedisStateStore()
         )
 
-        self.prefix = "sentinel:state"
+        self.postgres = (
+            postgres_store
+            or PostgresStateStore()
+        )
 
     # =========================================================
     # TOKEN
     # =========================================================
-
-    def _token_key(
-        self,
-        chain: str,
-        mint: str,
-    ) -> str:
-        return (
-            f"{self.prefix}:token:"
-            f"{chain}:{mint}"
-        )
 
     async def get_token(
         self,
         chain: str,
         mint: str,
     ) -> TokenState | None:
-        raw = await self.redis.get(
-            self._token_key(chain, mint)
-        )
 
-        if raw is None:
-            return None
-
-        return TokenState.model_validate_json(
-            raw
+        return await self.redis.get(
+            entity_type="token",
+            chain=chain,
+            entity_id=mint,
+            model_type=TokenState,
         )
 
     async def save_token(
         self,
         state: TokenState,
-    ) -> None:
-        await self.redis.set(
-            self._token_key(
-                state.chain,
-                state.mint,
-            ),
-            json.dumps(
-                state.model_dump(
-                    mode="json"
+    ) -> TokenState:
+
+        state = self._touch(
+            state
+        )
+
+        saved = await self.redis.save(
+            entity_type="token",
+            chain=state.chain,
+            entity_id=state.mint,
+            state=state,
+        )
+
+        await self.postgres.append_snapshot(
+            entity_type="token",
+            chain=state.chain,
+            entity_id=state.mint,
+            state=saved,
+        )
+
+        return saved
+
+    async def update_token(
+        self,
+        *,
+        chain: str,
+        mint: str,
+        updater: Callable[
+            [TokenState],
+            None,
+        ],
+        event_id: str | None = None,
+        source_id: str | None = None,
+        observed_at: datetime | None = None,
+        status: StateStatus | None = None,
+    ) -> TokenState:
+
+        current = await self.get_token(
+            chain,
+            mint,
+        )
+
+        if current is None:
+            current = TokenState(
+                chain=chain,
+                mint=mint,
+                meta=StateMeta(
+                    status=(
+                        status
+                        or StateStatus.UNAVAILABLE
+                    ),
+                    source_id=source_id,
+                    observed_at=observed_at,
+                    last_event_id=event_id,
                 ),
-                separators=(",", ":"),
-            ),
+            )
+        else:
+            updater(current)
+
+            current.meta.version += 1
+
+            if event_id is not None:
+                current.meta.last_event_id = (
+                    event_id
+                )
+
+            if source_id is not None:
+                current.meta.source_id = (
+                    source_id
+                )
+
+            if observed_at is not None:
+                current.meta.observed_at = (
+                    observed_at
+                )
+
+            if status is not None:
+                current.meta.status = status
+
+        updater(current)
+
+        current.meta.version = max(
+            current.meta.version,
+            1,
+        )
+
+        return await self.save_token(
+            current
         )
 
     # =========================================================
     # POOL
     # =========================================================
 
-    def _pool_key(
-        self,
-        chain: str,
-        address: str,
-    ) -> str:
-        return (
-            f"{self.prefix}:pool:"
-            f"{chain}:{address}"
-        )
-
     async def get_pool(
         self,
         chain: str,
-        address: str,
+        pool_id: str,
     ) -> PoolState | None:
-        raw = await self.redis.get(
-            self._pool_key(chain, address)
-        )
 
-        if raw is None:
-            return None
-
-        return PoolState.model_validate_json(
-            raw
+        return await self.redis.get(
+            entity_type="pool",
+            chain=chain,
+            entity_id=pool_id,
+            model_type=PoolState,
         )
 
     async def save_pool(
         self,
         state: PoolState,
-    ) -> None:
-        await self.redis.set(
-            self._pool_key(
-                state.chain,
-                state.address,
-            ),
-            json.dumps(
-                state.model_dump(mode="json"),
-                separators=(",", ":"),
-            ),
+    ) -> PoolState:
+
+        state = self._touch(
+            state
         )
+
+        saved = await self.redis.save(
+            entity_type="pool",
+            chain=state.chain,
+            entity_id=state.pool_id,
+            state=state,
+        )
+
+        await self.postgres.append_snapshot(
+            entity_type="pool",
+            chain=state.chain,
+            entity_id=state.pool_id,
+            state=saved,
+        )
+
+        return saved
 
     # =========================================================
     # WALLET
     # =========================================================
-
-    def _wallet_key(
-        self,
-        chain: str,
-        address: str,
-    ) -> str:
-        return (
-            f"{self.prefix}:wallet:"
-            f"{chain}:{address}"
-        )
 
     async def get_wallet(
         self,
         chain: str,
         address: str,
     ) -> WalletState | None:
-        raw = await self.redis.get(
-            self._wallet_key(
-                chain,
-                address,
-            )
-        )
 
-        if raw is None:
-            return None
-
-        return WalletState.model_validate_json(
-            raw
+        return await self.redis.get(
+            entity_type="wallet",
+            chain=chain,
+            entity_id=address.lower(),
+            model_type=WalletState,
         )
 
     async def save_wallet(
         self,
         state: WalletState,
-    ) -> None:
-        await self.redis.set(
-            self._wallet_key(
-                state.chain,
-                state.address,
-            ),
-            json.dumps(
-                state.model_dump(mode="json"),
-                separators=(",", ":"),
-            ),
+    ) -> WalletState:
+
+        state = self._touch(
+            state
         )
+
+        saved = await self.redis.save(
+            entity_type="wallet",
+            chain=state.chain,
+            entity_id=state.address.lower(),
+            state=state,
+        )
+
+        await self.postgres.append_snapshot(
+            entity_type="wallet",
+            chain=state.chain,
+            entity_id=state.address.lower(),
+            state=saved,
+        )
+
+        return saved
 
     # =========================================================
     # DEVELOPER
     # =========================================================
-
-    def _developer_key(
-        self,
-        chain: str,
-        address: str,
-    ) -> str:
-        return (
-            f"{self.prefix}:developer:"
-            f"{chain}:{address}"
-        )
 
     async def get_developer(
         self,
         chain: str,
         address: str,
     ) -> DeveloperState | None:
-        raw = await self.redis.get(
-            self._developer_key(
-                chain,
-                address,
-            )
-        )
 
-        if raw is None:
-            return None
-
-        return DeveloperState.model_validate_json(
-            raw
+        return await self.redis.get(
+            entity_type="developer",
+            chain=chain,
+            entity_id=address.lower(),
+            model_type=DeveloperState,
         )
 
     async def save_developer(
         self,
         state: DeveloperState,
-    ) -> None:
-        await self.redis.set(
-            self._developer_key(
-                state.chain,
-                state.address,
-            ),
-            json.dumps(
-                state.model_dump(mode="json"),
-                separators=(",", ":"),
-            ),
+    ) -> DeveloperState:
+
+        state = self._touch(
+            state
         )
+
+        saved = await self.redis.save(
+            entity_type="developer",
+            chain=state.chain,
+            entity_id=state.address.lower(),
+            state=state,
+        )
+
+        await self.postgres.append_snapshot(
+            entity_type="developer",
+            chain=state.chain,
+            entity_id=state.address.lower(),
+            state=saved,
+        )
+
+        return saved
 
     # =========================================================
     # LAUNCHPAD
     # =========================================================
 
-    def _launchpad_key(
-        self,
-        chain: str,
-        mint: str,
-    ) -> str:
-        return (
-            f"{self.prefix}:launchpad:"
-            f"{chain}:{mint}"
-        )
-
     async def get_launchpad(
         self,
         chain: str,
-        mint: str,
+        launchpad_id: str,
     ) -> LaunchpadState | None:
-        raw = await self.redis.get(
-            self._launchpad_key(
-                chain,
-                mint,
-            )
-        )
 
-        if raw is None:
-            return None
-
-        return LaunchpadState.model_validate_json(
-            raw
+        return await self.redis.get(
+            entity_type="launchpad",
+            chain=chain,
+            entity_id=launchpad_id,
+            model_type=LaunchpadState,
         )
 
     async def save_launchpad(
         self,
         state: LaunchpadState,
-    ) -> None:
-        await self.redis.set(
-            self._launchpad_key(
-                state.chain,
-                state.token_mint,
-            ),
-            json.dumps(
-                state.model_dump(mode="json"),
-                separators=(",", ":"),
-            ),
+    ) -> LaunchpadState:
+
+        state = self._touch(
+            state
         )
 
+        saved = await self.redis.save(
+            entity_type="launchpad",
+            chain=state.chain,
+            entity_id=state.launchpad_id,
+            state=state,
+        )
+
+        await self.postgres.append_snapshot(
+            entity_type="launchpad",
+            chain=state.chain,
+            entity_id=state.launchpad_id,
+            state=saved,
+        )
+
+        return saved
+
+    # =========================================================
+    # INTERNAL
+    # =========================================================
+
+    @staticmethod
+    def _touch(
+        state: T,
+    ) -> T:
+
+        state.meta.processed_at = utc_now()
+
+        if state.meta.observed_at:
+            delta = (
+                state.meta.processed_at
+                - state.meta.observed_at
+            )
+
+            state.meta.age_ms = max(
+                0,
+                int(
+                    delta.total_seconds()
+                    * 1000
+                ),
+            )
+
+        return state
+
     async def close(self) -> None:
-        await self.redis.aclose()
-
-
-_state_service: StateService | None = None
-
-
-def get_state_service() -> StateService:
-    global _state_service
-
-    if _state_service is None:
-        _state_service = StateService()
-
-    return _state_service
+        await self.redis.close()

@@ -15,301 +15,234 @@ def utc_now() -> datetime:
 class StateStatus(str, Enum):
     VERIFIED = "VERIFIED"
     DERIVED = "DERIVED"
-    MODEL_DERIVED = "MODEL_DERIVED"
     STALE = "STALE"
     CONFLICT = "CONFLICT"
     UNRESOLVED = "UNRESOLVED"
     UNAVAILABLE = "UNAVAILABLE"
 
 
-class ChainId(str, Enum):
-    SOLANA = "solana"
-    BASE = "base"
-    ETHEREUM = "ethereum"
-    BNB = "bnb"
-    ROBINHOOD = "robinhood"
-
-
-class Provenance(BaseModel):
-    """
-    Provenance for an individual state value.
-
-    This prevents SentinelAI from presenting an untraceable
-    value as fact.
-    """
-
-    model_config = ConfigDict(extra="forbid")
-
-    source: str
-    source_type: str
-    observed_at: datetime = Field(default_factory=utc_now)
-
-    event_id: str | None = None
-
-    transaction_hash: str | None = None
-    transaction_signature: str | None = None
-
-    block_number: int | None = None
-    slot: int | None = None
-
-    block_hash: str | None = None
-
-    parser: str | None = None
-    parser_version: str | None = None
-
-    status: StateStatus = StateStatus.VERIFIED
-
-    evidence_ids: list[str] = Field(default_factory=list)
-
-
-class ChainPosition(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    block_number: int | None = None
-    slot: int | None = None
-    block_hash: str | None = None
-
-    transaction_hash: str | None = None
-    transaction_signature: str | None = None
-
-    instruction_index: int | None = None
-    log_index: int | None = None
-
-    commitment: str | None = None
-
-
 class StateMeta(BaseModel):
     """
-    Metadata shared by every canonical state object.
+    Metadata attached to every canonical state object.
+
+    This prevents SentinelAI from presenting a value without
+    knowing where it came from or how fresh it is.
     """
 
     model_config = ConfigDict(extra="forbid")
-
-    entity_id: str
-    chain: ChainId
 
     version: int = 1
 
-    status: StateStatus = StateStatus.VERIFIED
+    status: StateStatus = StateStatus.UNAVAILABLE
 
-    observed_at: datetime = Field(default_factory=utc_now)
-    updated_at: datetime = Field(default_factory=utc_now)
+    source_id: str | None = None
+
+    observed_at: datetime | None = None
+
+    processed_at: datetime = Field(default_factory=utc_now)
 
     last_event_id: str | None = None
 
-    source: str | None = None
-    source_type: str | None = None
+    parser: str | None = None
 
-    chain_position: ChainPosition | None = None
+    parser_version: str | None = None
 
-    provenance: dict[str, Provenance] = Field(
-        default_factory=dict
-    )
-
-    conflicts: dict[str, list[Any]] = Field(
-        default_factory=dict
-    )
+    age_ms: int | None = None
 
 
 class TokenState(BaseModel):
-    """
-    Current canonical state of a token.
-
-    All values are nullable when the blockchain/provider has
-    not established them. Zero must only mean an observed zero.
-    """
-
     model_config = ConfigDict(extra="forbid")
 
-    meta: StateMeta
+    entity_type: str = "token"
 
+    chain: str
     mint: str
 
     name: str | None = None
     symbol: str | None = None
-
     decimals: int | None = None
-
-    total_supply: Decimal | None = None
-    circulating_supply: Decimal | None = None
 
     price_usd: Decimal | None = None
     market_cap_usd: Decimal | None = None
     fdv_usd: Decimal | None = None
 
-    liquidity_usd: Decimal | None = None
-
-    volume_1m_usd: Decimal | None = None
-    volume_5m_usd: Decimal | None = None
-    volume_15m_usd: Decimal | None = None
-    volume_1h_usd: Decimal | None = None
-    volume_24h_usd: Decimal | None = None
-
-    buys_1m: int | None = None
-    sells_1m: int | None = None
-
-    buys_5m: int | None = None
-    sells_5m: int | None = None
+    total_supply: Decimal | None = None
+    circulating_supply: Decimal | None = None
 
     holders: int | None = None
 
-    creator: str | None = None
-    deployer: str | None = None
+    liquidity_usd: Decimal | None = None
+
+    volume_5m_usd: Decimal | None = None
+    volume_1h_usd: Decimal | None = None
+    volume_24h_usd: Decimal | None = None
+
+    buy_volume_5m_usd: Decimal | None = None
+    sell_volume_5m_usd: Decimal | None = None
+
+    transaction_count_5m: int | None = None
 
     launchpad_id: str | None = None
+    launchpad_name: str | None = None
+
     launchpad_rail: str | None = None
-    launchpad_status: StateStatus = StateStatus.UNAVAILABLE
+
+    launchpad_attribution_status: str = "UNRESOLVED"
+
+    primary_pool_id: str | None = None
+    pool_ids: list[str] = Field(default_factory=list)
 
     metadata_uri: str | None = None
+
     logo_uri: str | None = None
+
+    creator_address: str | None = None
 
     mint_authority: str | None = None
     freeze_authority: str | None = None
 
-    lp_locked: bool | None = None
-    lp_burned: bool | None = None
+    meta: StateMeta = Field(default_factory=StateMeta)
 
 
 class PoolState(BaseModel):
-    """
-    Current canonical state of a liquidity pool.
-    """
-
     model_config = ConfigDict(extra="forbid")
 
-    meta: StateMeta
+    entity_type: str = "pool"
 
-    pool_address: str
+    chain: str
+    pool_id: str
 
-    token_a: str
-    token_b: str
+    dex_id: str
 
-    dex: str | None = None
+    base_token: str
+    quote_token: str
 
-    pool_type: str | None = None
+    base_reserve: Decimal | None = None
+    quote_reserve: Decimal | None = None
 
-    reserve_a: Decimal | None = None
-    reserve_b: Decimal | None = None
+    price_usd: Decimal | None = None
 
     liquidity_usd: Decimal | None = None
 
-    price_token_a: Decimal | None = None
-    price_token_b: Decimal | None = None
-
-    volume_1m_usd: Decimal | None = None
     volume_5m_usd: Decimal | None = None
     volume_1h_usd: Decimal | None = None
     volume_24h_usd: Decimal | None = None
 
-    buys_5m: int | None = None
-    sells_5m: int | None = None
+    buy_volume_5m_usd: Decimal | None = None
+    sell_volume_5m_usd: Decimal | None = None
+
+    fee_bps: int | None = None
 
     lp_supply: Decimal | None = None
-    lp_burned: bool | None = None
-    lp_locked: bool | None = None
 
     created_at: datetime | None = None
 
     last_swap_at: datetime | None = None
 
+    last_liquidity_change_at: datetime | None = None
+
+    meta: StateMeta = Field(default_factory=StateMeta)
+
 
 class WalletState(BaseModel):
-    """
-    Current canonical state of a wallet.
-    """
-
     model_config = ConfigDict(extra="forbid")
 
-    meta: StateMeta
+    entity_type: str = "wallet"
 
+    chain: str
     address: str
-
-    wallet_type: str | None = None
 
     native_balance: Decimal | None = None
 
-    total_trades: int | None = None
+    token_count: int | None = None
+    transaction_count: int | None = None
 
-    winning_trades: int | None = None
-    losing_trades: int | None = None
-
-    win_rate: Decimal | None = None
-    avg_roi: Decimal | None = None
+    total_volume_usd: Decimal | None = None
 
     realized_pnl_usd: Decimal | None = None
     unrealized_pnl_usd: Decimal | None = None
-    total_pnl_usd: Decimal | None = None
 
-    first_seen: datetime | None = None
-    last_active: datetime | None = None
+    win_rate: Decimal | None = None
 
-    preferred_chains: list[str] = Field(
-        default_factory=list
-    )
+    average_hold_seconds: int | None = None
+
+    classification: str | None = None
+
+    smart_money: bool = False
+    sniper: bool = False
+    insider: bool = False
+    fresh_wallet: bool = False
+
+    first_seen_at: datetime | None = None
+    last_activity_at: datetime | None = None
 
     preferred_launchpads: list[str] = Field(
         default_factory=list
     )
 
-    preferred_dexes: list[str] = Field(
+    preferred_tokens: list[str] = Field(
         default_factory=list
     )
+
+    meta: StateMeta = Field(default_factory=StateMeta)
 
 
 class DeveloperState(BaseModel):
-    """
-    Current canonical state of a token developer/deployer.
-    """
-
     model_config = ConfigDict(extra="forbid")
 
-    meta: StateMeta
+    entity_type: str = "developer"
 
+    chain: str
     address: str
 
-    tokens_created: int | None = None
-    successful_tokens: int | None = None
-    failed_tokens: int | None = None
+    first_seen_at: datetime | None = None
+    last_activity_at: datetime | None = None
 
-    rug_count: int | None = None
+    tokens_created: int = 0
+
+    successful_tokens: int = 0
+    failed_tokens: int = 0
+
+    rugged_tokens: int = 0
+
+    total_deployed_liquidity_usd: Decimal = Decimal("0")
 
     average_initial_liquidity_usd: Decimal | None = None
 
-    average_token_lifetime_hours: Decimal | None = None
+    historical_volume_usd: Decimal = Decimal("0")
 
-    historical_profit_usd: Decimal | None = None
-
-    known_launchpads: list[str] = Field(
+    wallet_addresses: list[str] = Field(
         default_factory=list
     )
 
-    known_wallets: list[str] = Field(
+    associated_launchpads: list[str] = Field(
         default_factory=list
     )
 
-    first_seen: datetime | None = None
-    last_activity: datetime | None = None
+    risk_flags: list[str] = Field(
+        default_factory=list
+    )
+
+    meta: StateMeta = Field(default_factory=StateMeta)
 
 
 class LaunchpadState(BaseModel):
-    """
-    Canonical state for a launchpad / launch rail.
-
-    A shared rail and a specific brand are deliberately separate.
-    """
-
     model_config = ConfigDict(extra="forbid")
 
-    meta: StateMeta
+    entity_type: str = "launchpad"
 
+    chain: str
     launchpad_id: str
+
     name: str
 
-    rail: str
+    detection_mode: str
 
-    protocol_family: str | None = None
+    attribution_mode: str
 
-    chain_programs: list[str] = Field(
+    rail_id: str | None = None
+
+    program_ids: list[str] = Field(
         default_factory=list
     )
 
@@ -321,10 +254,14 @@ class LaunchpadState(BaseModel):
         default_factory=list
     )
 
-    attribution_mode: str = "direct"
+    created_token_count: int = 0
 
-    attribution_status: StateStatus = StateStatus.UNAVAILABLE
+    volume_24h_usd: Decimal | None = None
 
-    authoritative_metadata_source: str | None = None
+    active: bool = True
 
-    last_metadata_refresh: datetime | None = None
+    last_activity_at: datetime | None = None
+
+    metadata_source: str | None = None
+
+    meta: StateMeta = Field(default_factory=StateMeta)
