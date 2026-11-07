@@ -5,8 +5,6 @@ from functools import lru_cache
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-self.settings.REDIS_PASSWORD
-
 
 class Settings(BaseSettings):
     """
@@ -398,23 +396,44 @@ def get_settings() -> Settings:
     """
     return Settings()
 
-# =========================================================
-# REDIS
-# =========================================================
+    # =========================================================
+    # REDIS
+    # =========================================================
 
-REDIS_HOST: str = "localhost"
-REDIS_PORT: int = 6379
-REDIS_PASSWORD: str = ""
-REDIS_DB: int = 0
+    REDIS_HOST: str = "localhost"
 
-REDIS_STREAM_PREFIX: str = "sentinel"
-REDIS_EVENT_STREAM: str = "events"
+    REDIS_PORT: int = 6379
 
-# Redis Stream retention.
-# This controls the approximate maximum number of events
-# retained in the canonical stream.
-REDIS_STREAM_MAXLEN: int = 1_000_000
+    REDIS_PASSWORD: str = ""
 
-# XREAD/XREADGROUP behavior.
-REDIS_STREAM_BLOCK_MS: int = 5_000
-REDIS_STREAM_READ_COUNT: int = 100    
+    REDIS_DB: int = 0
+
+    REDIS_STREAM_PREFIX: str = "sentinel"
+
+    REDIS_EVENT_STREAM: str = "events"
+
+    REDIS_TOKEN_STREAM: str = "token-events"
+
+    REDIS_WALLET_STREAM: str = "wallet-events"
+
+    REDIS_MARKET_STREAM: str = "market-events"
+
+    REDIS_ALERT_STREAM: str = "alert-events"
+
+    REDIS_SCORE_STREAM: str = "score-events"
+
+    # Browser origins allowed to access API and realtime ticket.
+
+    CORS_ORIGINS: list[str] = Field(
+        default_factory=lambda: [
+            "http://localhost:3000"
+        ]
+    )
+
+    # Redis Stream settings.
+
+    REDIS_STREAM_MAXLEN: int = 1_000_000
+
+    REDIS_STREAM_BLOCK_MS: int = 5_000
+
+    REDIS_STREAM_READ_COUNT: int = 100

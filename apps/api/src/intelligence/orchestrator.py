@@ -418,7 +418,10 @@ class IntelligenceOrchestrator:
             chain=event.chain,
             token=token.mint,
             source="rug_radar",
-            values=result,
+            values={
+                "rug_radar": result,
+            },
+            observed_at=event.observed_at,
             event_id=event.event_id,
         )
 
@@ -593,7 +596,7 @@ class IntelligenceOrchestrator:
     # SCORE
     # =========================================================
 
-    async def _run_score_engine(
+        async def _run_score_engine(
         self,
         event: RealtimeEvent,
         token_mint: str,
@@ -606,7 +609,7 @@ class IntelligenceOrchestrator:
 
         status = result.get(
             "status",
-            "model_derived",
+            "unavailable",
         )
 
         await self.features.set_status(
@@ -623,12 +626,20 @@ class IntelligenceOrchestrator:
         if status != "model_derived":
             return
 
+        # Do not store the runner's execution status as a model feature.
+        score_values = {
+            key: value
+            for key, value in result.items()
+            if key != "status"
+        }
+
         await self.features.merge(
             chain=event.chain,
             token=token_mint,
             source="scoring",
-            values=result,
+            values=score_values,
             event_id=event.event_id,
+            observed_at=event.observed_at,
         )
 
         await publish_event(
@@ -641,7 +652,6 @@ class IntelligenceOrchestrator:
             status="model_derived",
             payload={
                 "token": token_mint,
-                "model_version": "legacy-1.0",
-                **result,
+                **score_values,
             },
         )

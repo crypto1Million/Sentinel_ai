@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from config.settings import get_settings
 
 import jwt
 from fastapi import HTTPException, status
@@ -13,12 +14,15 @@ from jwt import ExpiredSignatureError, InvalidTokenError
 # Configuration
 # ============================================================
 
-SECRET_KEY = os.getenv(
-    "JWT_SECRET_KEY",
-    "CHANGE_ME_IN_PRODUCTION",
+_settings = get_settings()
+
+SECRET_KEY = (
+    os.getenv("JWT_SECRET_KEY")
+    or _settings.JWT_SECRET
+    or "CHANGE_ME_IN_PRODUCTION"
 )
 
-ALGORITHM = "HS256"
+ALGORITHM = _settings.JWT_ALGORITHM
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

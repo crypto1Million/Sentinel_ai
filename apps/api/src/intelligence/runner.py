@@ -576,78 +576,39 @@ class IntelligenceRunner:
     # SCORING
     # =========================================================
 
-    async def scoring(
+        async def scoring(
         self,
         features: dict[str, Any],
     ) -> dict[str, Any]:
 
-        required = [
-            "successful_launches",
-            "rugs",
-            "avg_ath",
-            "wallet_age_days",
-            "smart_money",
-            "whales",
-            "insiders",
-            "volume",
-            "buyers",
-            "repeat_wallets",
-            "telegram_members",
-            "twitter_mentions",
-            "j7_signals",
-            "engagement_rate",
-            "narrative_rank",
-            "narrative_growth",
-            "narrative_volume_growth",
-            "mint_enabled",
-            "freeze_enabled",
-            "dev_percent",
-            "bundled_wallets",
-            "market_cap",
-            "age_minutes",
-            "score_boost",
-        ]
+        """Run the evidence-aware six-pillar SentinelScore model."""
 
-        missing = [
-            key
-            for key in required
-            if key not in features
-            or features[key] is None
-        ]
-
-        if missing:
-            return {
-                "status": "unavailable",
-                "missing_fields": missing,
-            }
-
-        engine_path = (
-            SERVICES_DIR
-            / "scoring-engine"
-            / "sentinel_score.py"
-        )
+        from intelligence.sentinel_score import SentinelScoreEngine
 
         try:
-            Engine = load_class(
-                file_path=engine_path,
-                class_name="SentinelScoreEngine",
-                module_name=(
-                    "sentinel_scoring_runtime"
-                ),
-            )
-
-            engine = Engine()
+            engine = SentinelScoreEngine()
 
             result = await asyncio.to_thread(
                 engine.calculate,
                 features,
             )
 
+            # Risk flags and a hard veto are meaningful outputs even
+            # when the overall numeric risk score lacks enough coverage.
+            has_result = (
+                result.get("potential_score") is not None
+                or result.get("rug_risk_score") is not None
+                or result.get("rug_hard_veto") is True
+                or bool(result.get("risk_flags"))
+            )
+
             return {
-                "status": "model_derived",
-                "model_name": "SentinelScoreEngine",
-                "model_version": "legacy-1.0",
-                "result": result,
+                "status": (
+                    "model_derived"
+                    if has_result
+                    else "unavailable"
+                ),
+                **result,
             }
 
         except Exception as exc:

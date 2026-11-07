@@ -2,10 +2,18 @@ type Props = {
 
   symbol: string;
 
-  marketCap: number;
+  marketCap?: number;
 
-  holders: number;
+  holders?: number;
+
+  chain?: string;
+
+  price?: number;
+
+  mint?: string;
+
 };
+
 
 export default function TokenCard({
 
@@ -13,33 +21,97 @@ export default function TokenCard({
 
   marketCap,
 
-  holders
+  holders,
+
+  chain,
+
+  price,
+
+  mint,
 
 }: Props) {
 
   return (
 
-    <div className="bg-zinc-900 p-4 rounded-xl">
+    <article className="rounded-xl border border-[#292929] bg-zinc-900 p-4">
 
-      <h2 className="text-xl font-bold">
+      <div className="flex items-start justify-between gap-3">
 
-        {symbol}
+        <h2 className="truncate text-xl font-bold">
 
-      </h2>
+          {symbol}
 
-      <p>
+        </h2>
 
-        MC: ${marketCap.toLocaleString()}
 
-      </p>
+        {chain ? (
 
-      <p>
+          <span className="rounded-md bg-[#17130A] px-2 py-1 text-[10px] uppercase text-[#F5C84C]">
 
-        Holders: {holders}
+            {chain}
 
-      </p>
+          </span>
 
-    </div>
+        ) : null}
+
+      </div>
+
+
+      <div className="mt-3 space-y-1 text-sm text-[#B5B5B5]">
+
+        <p>
+
+          MC: {
+            marketCap !== undefined
+              ? `$${marketCap.toLocaleString()}`
+              : "—"
+          }
+
+        </p>
+
+
+        <p>
+
+          Holders: {
+            holders !== undefined
+              ? holders.toLocaleString()
+              : "—"
+          }
+
+        </p>
+
+
+        {price !== undefined ? (
+
+          <p>
+
+            Price: ${price.toPrecision(6)}
+
+          </p>
+
+        ) : null}
+
+      </div>
+
+
+      {mint ? (
+
+        <p
+
+          className="mt-3 truncate font-mono text-[10px] text-[#666]"
+
+          title={mint}
+
+        >
+
+          {mint}
+
+        </p>
+
+      ) : null}
+
+    </article>
 
   );
+
 }

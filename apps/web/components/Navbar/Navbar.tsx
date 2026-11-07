@@ -4,6 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  useRealtimeStore
+} from "@/store/realtimeStore";
+import {
   Search,
   Bell,
   UserRound,
@@ -46,6 +49,8 @@ const navigation = [
 
 export default function Navbar() {
   const pathname = usePathname();
+  const realtimeStatus = useRealtimeStore(
+  (state) => state.connectionStatus );
 
   return (
     <header className="sticky top-0 z-50 h-16 border-b border-[#292929] bg-[#070707]/95 backdrop-blur">
@@ -111,6 +116,33 @@ export default function Navbar() {
             ===================================================== */}
 
         <div className="ml-auto flex items-center gap-2">
+        
+          {/* REALTIME CONNECTION STATUS */}
+
+          <div
+            className="hidden items-center gap-2 rounded-lg border border-[#292929] bg-[#101010] px-3 py-2 md:flex"
+            role="status"
+            aria-live="polite"
+            title={`Realtime connection: ${realtimeStatus}`}
+          >
+
+          <span
+            className={`h-2 w-2 rounded-full ${
+              realtimeStatus === "connected"
+              ? "bg-emerald-400"
+              : "bg-amber-400"
+            }`}
+          />
+
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-[#B5B5B5]">
+
+            {realtimeStatus === "connected"
+            ? "Live"
+            : realtimeStatus}
+
+          </span>
+
+        </div>          
 
           {/* Search */}
 

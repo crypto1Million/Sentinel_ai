@@ -16,6 +16,13 @@ EventType = Literal[
     "launchpad.detected",
     "system.updated",
     "chain.observed",
+
+    # Intelligence events
+    "rug.updated",
+    "market_intelligence.updated",
+    "wallet_dna.updated",
+    "j7.updated",
+    "narrative.updated",
 ]
 
 
@@ -25,14 +32,13 @@ EventStatus = Literal[
     "model_derived",
     "unresolved",
     "conflict",
-    
-    # Intelligence events
-    "rug.updated",
-    "market_intelligence.updated",
-    "wallet_dna.updated",
-    "j7.updated",
-    "narrative.updated",
+    "unavailable",
+    "error",
+    "unknown",
+]
 
+
+[
     # Scoring / alerts
     "score.updated",
     "alert.created",
