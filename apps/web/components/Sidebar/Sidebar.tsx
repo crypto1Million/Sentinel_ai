@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export default function Sidebar() {
 
@@ -8,7 +9,7 @@ export default function Sidebar() {
 
       <div className="p-6">
 
-        <h2 className="font-bold text-green-400">
+        <h2 className="font-bold text-gold-400">
           Sentinel
         </h2>
 
