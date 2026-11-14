@@ -73,15 +73,11 @@ export default function Navbar() {
             priority
             className="h-[34px] w-[34px] object-contain"
           />
-
-          <Image
-            src="/brand/sentinellogoword.svg"
-            alt="Sentinel"
-            width={112}
-            height={30}
-            priority
-            className="h-[30px] w-auto object-contain"
-          />
+          
+          <span className="hidden text-lg font-semibold text-white sm:block">
+            SentinelAI
+          </span> 
+          
         </Link>
 
         {/* =====================================================
