@@ -1,20 +1,29 @@
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Sidebar() {
-
   return (
+    <aside className="w-64 shrink-0 border-r border-zinc-800 bg-zinc-950">
 
-    <div className="w-64 bg-zinc-950 border-r border-zinc-800">
-
+      {/* Sentinel brand */}
       <div className="p-6">
-
-        <h2 className="font-bold text-gold-400">
-          Sentinel
-        </h2>
-
+        <Link
+          href="/"
+          aria-label="Sentinel Home"
+          className="relative block h-14 w-full"
+        >
+          <Image
+            src="/brand/sentinel-logo.svg"
+            alt="Sentinel"
+            fill
+            priority
+            sizes="224px"
+            className="object-contain object-left"
+          />
+        </Link>
       </div>
 
+      {/* Navigation */}
       <nav className="flex flex-col gap-3 px-4">
 
         <Link href="/">
@@ -43,7 +52,6 @@ export default function Sidebar() {
 
       </nav>
 
-    </div>
-
+    </aside>
   );
 }

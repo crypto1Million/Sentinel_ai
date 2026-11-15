@@ -1,7 +1,7 @@
 "use client";
 
+import Image from "next/image";
 import {
-  ShieldCheck,
   Brain,
   TrendingUp,
   TrendingDown,
@@ -143,9 +143,12 @@ export default function SentinelScoreCard({
 
         <div className="flex items-center gap-3">
 
-          <ShieldCheck
-            size={28}
-            className="text-cyan-400"
+          <Image
+            src="/brand/sentinel-mark.svg"
+            alt="Sentinel"
+            width={28}
+            height={28}
+            className="h-7 w-7 object-contain"
           />
 
           <div>

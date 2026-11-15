@@ -65,19 +65,27 @@ export default function Navbar() {
           aria-label="SentinelAI Home"
           className="mr-6 flex shrink-0 items-center gap-2.5"
         >
-          <Image
-            src="/brand/sentinellogo.svg"
-            alt="Sentinel"
-            width={34}
-            height={34}
-            priority
-            className="h-[34px] w-[34px] object-contain"
-          />
-          
-          <span className="hidden text-lg font-semibold text-white sm:block">
-            SentinelAI
-          </span> 
-          
+          {/* Sentinel symbol */}
+           <Image
+             src="/brand/sentinel-mark.svg"
+             alt="Sentinel symbol"
+             width={34}
+             height={34}
+             priority
+             className="h-[34px] w-[34px] object-contain"
+           />
+
+          {/* SENTINEL wordmark only */}
+          <span className="relative block h-[28px] w-[118px]">
+           <Image
+             src="/brand/sentinellogoword.png"
+             alt="SENTINEL"
+             fill
+             priority
+             sizes="118px"
+             className="object-contain object-left"
+           />
+         </span>
         </Link>
 
         {/* =====================================================
