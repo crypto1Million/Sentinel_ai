@@ -65,6 +65,7 @@ export interface RealtimeEvent<T = Record<string, unknown>> {
 
 export interface RealtimeEntityState {
   values: Record<string, unknown>;
+  chain: string | null;
   eventId: string;
   observedAt: string;
   version: number;
@@ -195,6 +196,8 @@ function mergeEntity(
       ...(current?.values ?? {}),
       ...patch,
     },
+
+    chain: event.chain ?? current?.chain ?? null,
 
     eventId: event.event_id,
     observedAt: event.observed_at,
@@ -345,7 +348,7 @@ export const useRealtimeStore =
                   [event.entity_id]:
                     nextEntity,
                 }
-              : state,
+              : state.scores,
         };
       });
     },

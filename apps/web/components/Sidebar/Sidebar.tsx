@@ -5,7 +5,7 @@ export default function Sidebar() {
   return (
     <aside className="w-64 shrink-0 border-r border-zinc-800 bg-zinc-950">
 
-      {/* Sentinel brand */}
+      { /* Sentinel brand */}
       <div className="p-6">
         <Link
           href="/"

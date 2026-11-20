@@ -19,38 +19,38 @@ import { useChainStore } from "@/store/chainStore";
 const navigation = [
   {
     name: "Discover",
-    href: "/discover",
+    href: "/Discover",
   },
   {
     name: "Arena",
-    href: "/arena",
+    href: "/Arena",
   },
   {
     name: "Tracker",
-    href: "/tracker",
+    href: "/Tracker",
   },
   {
     name: "xStocks",
-    href: "/xstocks",
+    href: "/Xstocks",
   },
   {
     name: "Portfolio",
-    href: "/portfolio",
+    href: "/Portfolio",
   },
   {
     name: "Apex",
-    href: "/apex",
+    href: "/Apex",
   },
   {
     name: "Recruits",
-    href: "/recruits",
+    href: "/Recruits",
   },
 ];
 
 export default function Navbar() {
   const pathname = usePathname();
   const realtimeStatus = useRealtimeStore(
-  (state) => state.connectionStatus );
+  (state) => state.connections.tokens );
 
   return (
     <header className="sticky top-0 z-50 h-16 border-b border-[#292929] bg-[#070707]/95 backdrop-blur">

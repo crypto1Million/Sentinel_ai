@@ -2,17 +2,11 @@
 
 import { useEffect } from "react";
 
-import {
-  getAccessToken
-} from "@/lib/auth/auth";
-
-import {
-  useRealtimeStore
-} from "@/store/realtimeStore";
-
 import type {
-  RealtimeEvent
-} from "@/types/realtime";
+  RealtimeEvent,
+  RealtimeChannel,
+  ConnectionStatus,
+} from "@/store/realtimeStore";
 
 
 const RECONNECT_BASE_MS = 1_000;
@@ -202,8 +196,19 @@ export function useWebSocket() {
     let disposed = false;
 
 
-    const setConnectionStatus =
-      useRealtimeStore.getState().setConnectionStatus;
+    const updateConnectionStatus = (status: ConnectionStatus) => {
+      const store = useRealtimeStore.getState();
+
+      const channels: RealtimeChannel[] = [
+        "tokens",
+        "wallets",
+        "scores",
+      ];
+
+      channels.forEach((channel) => {
+        store.setConnectionStatus(channel, status);
+      });
+    };
 
 
     // =========================================
@@ -376,11 +381,30 @@ export function useWebSocket() {
           isRealtimeEvent(parsed)
         ) {
 
-          useRealtimeStore
-            .getState()
-            .applyEvent(parsed);
-        }
-      };
+          const store = useRealtimeStore.getState();
+          const event = parsed as RealtimeEvent;
+
+          if (event.event_type === "alert.created") {
+            store.addAlert(event);
+          } else {
+          let channel: RealtimeChannel;
+
+          if (
+            event.entity_type === "wallet" ||
+            event.event_type.startsWith("wallet")
+          ) {
+            channel = "wallets";
+          } else if (
+            event.entity_type === "score" ||
+            event.event_type.startsWith("score")
+          ) {
+            channel = "scores";
+          } else {
+            channel = "tokens";
+          }
+
+  store.applyEvent(channel, event);
+}
 
 
       // =======================================
