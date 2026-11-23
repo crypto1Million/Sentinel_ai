@@ -1,202 +1,153 @@
+
 "use client";
 
 import { useEffect } from "react";
 
-import type {
-  RealtimeEvent,
-  RealtimeChannel,
-  ConnectionStatus,
+import { getAccessToken } from "@/lib/auth/auth";
+
+import {
+  useRealtimeStore,
+  type RealtimeEvent,
+  type RealtimeChannel,
+  type ConnectionStatus,
 } from "@/store/realtimeStore";
 
+const RECONNECT_BASE_MS = 1000;
+const RECONNECT_MAX_MS = 30000;
 
-const RECONNECT_BASE_MS = 1_000;
-
-const RECONNECT_MAX_MS = 30_000;
-
+// --------------------------------------------------
+// WEBSOCKET URL
+// --------------------------------------------------
 
 function resolveEventsUrl(): URL {
-
   const configuredUrl =
     process.env.NEXT_PUBLIC_WS_URL ||
     process.env.NEXT_PUBLIC_API_URL ||
     "http://localhost:8000";
-
 
   const url = new URL(
     configuredUrl,
     window.location.origin
   );
 
-
   if (url.protocol === "https:") {
     url.protocol = "wss:";
-  }
-
-  else if (url.protocol === "http:") {
+  } else if (url.protocol === "http:") {
     url.protocol = "ws:";
   }
-
 
   if (
     url.protocol !== "ws:" &&
     url.protocol !== "wss:"
   ) {
-    throw new Error(
-      "NEXT_PUBLIC_WS_URL must use ws:// or wss://"
-    );
+    throw new Error("Invalid WebSocket protocol");
   }
 
-
-  if (
-    !url.pathname.endsWith("/ws/events")
-  ) {
-
+  if (!url.pathname.endsWith("/ws/events")) {
     url.pathname =
       `${url.pathname.replace(/\/+$/, "")}/ws/events`;
   }
 
-
   url.search = "";
-
   url.hash = "";
-
 
   return url;
 }
 
-
-// =============================================
-// REQUEST AUTHENTICATED REALTIME TICKET
-// =============================================
+// --------------------------------------------------
+// AUTHENTICATED REALTIME TICKET
+// --------------------------------------------------
 
 async function requestRealtimeTicket(): Promise<string> {
-
   const accessToken = getAccessToken();
 
-
   if (!accessToken) {
-
-    throw new Error(
-      "Authentication required for realtime events"
-    );
+    throw new Error("Authentication required");
   }
-
 
   const apiOrigin =
     process.env.NEXT_PUBLIC_API_URL ||
     "http://localhost:8000";
 
-
   const response = await fetch(
-
-    new URL(
-      "/realtime/ticket",
-      apiOrigin
-    ),
-
+    new URL("/realtime/ticket", apiOrigin),
     {
       method: "POST",
-
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
-
       cache: "no-store",
     }
   );
 
-
   if (!response.ok) {
-
     throw new Error(
-      `Realtime ticket request failed (${response.status})`
+      `Realtime ticket failed: ${response.status}`
     );
   }
-
 
   const body = await response.json() as {
     ticket?: unknown;
   };
 
-
   if (
     typeof body.ticket !== "string" ||
     !body.ticket
   ) {
-
-    throw new Error(
-      "Realtime ticket response was invalid"
-    );
+    throw new Error("Invalid realtime ticket response");
   }
-
 
   return body.ticket;
 }
 
-
-// =============================================
-// VALIDATE EVENT MESSAGE
-// =============================================
+// --------------------------------------------------
+// EVENT VALIDATION
+// --------------------------------------------------
 
 function isRealtimeEvent(
   value: unknown
 ): value is RealtimeEvent {
-
   if (
     !value ||
-    typeof value !== "object"
+    typeof value !== "object" ||
+    Array.isArray(value)
   ) {
     return false;
   }
 
-
-  const candidate =
-    value as Record<string, unknown>;
-
+  const event = value as Record<string, unknown>;
 
   return (
-
-    typeof candidate.event_id === "string" &&
-
-    typeof candidate.event_type === "string" &&
-
-    typeof candidate.entity_type === "string" &&
-
-    typeof candidate.entity_id === "string" &&
-
-    typeof candidate.observed_at === "string" &&
-
-    candidate.payload !== null &&
-
-    typeof candidate.payload === "object" &&
-
-    !Array.isArray(candidate.payload)
-
+    typeof event.event_id === "string" &&
+    typeof event.event_type === "string" &&
+    typeof event.entity_type === "string" &&
+    typeof event.entity_id === "string" &&
+    typeof event.observed_at === "string" &&
+    event.payload !== null &&
+    typeof event.payload === "object" &&
+    !Array.isArray(event.payload)
   );
 }
 
-
-// =============================================
+// --------------------------------------------------
 // MAIN WEBSOCKET HOOK
-// =============================================
+// --------------------------------------------------
 
 export function useWebSocket() {
-
   useEffect(() => {
-
     let socket: WebSocket | null = null;
 
     let reconnectTimer:
       ReturnType<typeof setTimeout> | undefined;
 
     let reconnectAttempt = 0;
-
     let connecting = false;
-
     let disposed = false;
 
-
-    const updateConnectionStatus = (status: ConnectionStatus) => {
+    // Update all realtime channels consistently.
+    const updateConnectionStatus = (
+      status: ConnectionStatus
+    ) => {
       const store = useRealtimeStore.getState();
 
       const channels: RealtimeChannel[] = [
@@ -210,289 +161,194 @@ export function useWebSocket() {
       });
     };
 
-
-    // =========================================
+    // ------------------------------------------------
     // RECONNECT SCHEDULER
-    // =========================================
+    // ------------------------------------------------
 
     const scheduleReconnect = () => {
-
-      if (
-        disposed ||
-        reconnectTimer
-      ) {
+      if (disposed || reconnectTimer !== undefined) {
         return;
       }
 
-
       const delay = Math.min(
-
         RECONNECT_BASE_MS *
           2 ** Math.min(reconnectAttempt, 5),
-
         RECONNECT_MAX_MS
       );
 
-
       reconnectAttempt += 1;
 
-
       reconnectTimer = setTimeout(() => {
-
         reconnectTimer = undefined;
-
         void connect();
-
       }, delay);
     };
 
+    // ------------------------------------------------
+    // ROUTE BACKEND EVENTS
+    // ------------------------------------------------
 
-    // =========================================
-    // CONNECT
-    // =========================================
+    const handleEvent = (event: RealtimeEvent) => {
+      const store = useRealtimeStore.getState();
 
-    const connect = async () => {
-
-      if (
-        disposed ||
-        connecting
-      ) {
+      if (event.event_type === "alert.created") {
+        store.addAlert(event);
         return;
       }
 
+      let channel: RealtimeChannel;
+
+      if (
+        event.entity_type === "wallet" ||
+        event.event_type.startsWith("wallet")
+      ) {
+        channel = "wallets";
+      } else if (
+        event.entity_type === "score" ||
+        event.event_type.startsWith("score")
+      ) {
+        channel = "scores";
+      } else {
+        channel = "tokens";
+      }
+
+      store.applyEvent(channel, event);
+    };
+
+    // ------------------------------------------------
+    // CONNECT
+    // ------------------------------------------------
+
+    const connect = async (): Promise<void> => {
+      if (disposed || connecting) {
+        return;
+      }
 
       connecting = true;
 
-
-      setConnectionStatus(
-
+      updateConnectionStatus(
         reconnectAttempt === 0
           ? "connecting"
           : "reconnecting"
       );
 
-
-      let ticket: string;
-
-
       try {
+        const ticket = await requestRealtimeTicket();
 
-        ticket =
-          await requestRealtimeTicket();
+        if (disposed) {
+          return;
+        }
 
-      }
+        const url = resolveEventsUrl();
 
-      catch {
+        url.searchParams.set("ticket", ticket);
 
-        connecting = false;
-
-        setConnectionStatus("error");
-
-        scheduleReconnect();
-
-        return;
-      }
-
-
-      if (disposed) {
-
-        connecting = false;
-
-        return;
-      }
-
-
-      let currentSocket: WebSocket;
-
-
-      try {
-
-        const url =
-          resolveEventsUrl();
-
-
-        url.searchParams.set(
-          "ticket",
-          ticket
-        );
-
-
-        currentSocket = new WebSocket(
+        const currentSocket = new WebSocket(
           url.toString()
         );
 
-      }
+        socket = currentSocket;
 
-      catch {
+        // --------------------------------------------
+        // CONNECTED
+        // --------------------------------------------
 
-        connecting = false;
+        currentSocket.onopen = () => {
+          reconnectAttempt = 0;
+          updateConnectionStatus("live");
+        };
 
-        setConnectionStatus("error");
+        // --------------------------------------------
+        // RECEIVE EVENTS
+        // --------------------------------------------
 
-        scheduleReconnect();
+        currentSocket.onmessage = (
+          message: MessageEvent<string>
+        ) => {
+          let parsed: unknown;
 
-        return;
-      }
-
-
-      socket = currentSocket;
-
-      connecting = false;
-
-
-      // =======================================
-      // CONNECTED
-      // =======================================
-
-      currentSocket.onopen = () => {
-
-        reconnectAttempt = 0;
-
-        setConnectionStatus("connected");
-      };
-
-
-      // =======================================
-      // RECEIVE REAL BACKEND EVENTS
-      // =======================================
-
-      currentSocket.onmessage = (
-        message: MessageEvent<string>
-      ) => {
-
-        let parsed: unknown;
-
-
-        try {
-
-          parsed = JSON.parse(
-            message.data
-          );
-
-        }
-
-        catch {
-
-          return;
-        }
-
-
-        if (
-          isRealtimeEvent(parsed)
-        ) {
-
-          const store = useRealtimeStore.getState();
-          const event = parsed as RealtimeEvent;
-
-          if (event.event_type === "alert.created") {
-            store.addAlert(event);
-          } else {
-          let channel: RealtimeChannel;
-
-          if (
-            event.entity_type === "wallet" ||
-            event.event_type.startsWith("wallet")
-          ) {
-            channel = "wallets";
-          } else if (
-            event.entity_type === "score" ||
-            event.event_type.startsWith("score")
-          ) {
-            channel = "scores";
-          } else {
-            channel = "tokens";
+          try {
+            parsed = JSON.parse(message.data);
+          } catch {
+            return;
           }
 
-  store.applyEvent(channel, event);
-}
+          if (isRealtimeEvent(parsed)) {
+            handleEvent(parsed);
+          }
+        };
 
+        // --------------------------------------------
+        // SOCKET ERROR
+        // --------------------------------------------
 
-      // =======================================
-      // SOCKET ERROR
-      // =======================================
+        currentSocket.onerror = () => {
+          updateConnectionStatus("reconnecting");
+        };
 
-      currentSocket.onerror = () => {
+        // --------------------------------------------
+        // SOCKET CLOSED
+        // --------------------------------------------
 
-        setConnectionStatus("error");
-      };
+        currentSocket.onclose = () => {
+          if (socket === currentSocket) {
+            socket = null;
+          }
 
+          if (disposed) {
+            updateConnectionStatus("offline");
+            return;
+          }
 
-      // =======================================
-      // SOCKET CLOSED
-      // =======================================
+          updateConnectionStatus("reconnecting");
+          scheduleReconnect();
+        };
 
-      currentSocket.onclose = () => {
+      } catch (error) {
+        console.error(
+          "[SentinelAI] Realtime connection failed:",
+          error
+        );
 
-        if (socket === currentSocket) {
-          socket = null;
-        }
-
-
-        if (disposed) {
-
-          setConnectionStatus("disconnected");
-
-          return;
-        }
-
-
-        setConnectionStatus("reconnecting");
-
+        updateConnectionStatus("reconnecting");
         scheduleReconnect();
-      };
 
+      } finally {
+        connecting = false;
+      }
     };
 
-
-    // START CONNECTION
-
+    // START
     void connect();
 
-
-    // =========================================
+    // ------------------------------------------------
     // CLEANUP
-    // =========================================
+    // ------------------------------------------------
 
     return () => {
-
       disposed = true;
 
-
-      if (reconnectTimer) {
-
-        clearTimeout(
-          reconnectTimer
-        );
+      if (reconnectTimer !== undefined) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = undefined;
       }
 
-
       if (socket) {
-
         socket.onopen = null;
-
         socket.onmessage = null;
-
         socket.onerror = null;
-
         socket.onclose = null;
-
 
         socket.close(
           1000,
           "Realtime provider unmounted"
         );
 
-
         socket = null;
       }
 
-
-      setConnectionStatus(
-        "disconnected"
-      );
-
+      updateConnectionStatus("offline");
     };
 
   }, []);
-
 }

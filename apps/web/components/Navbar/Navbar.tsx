@@ -132,7 +132,7 @@ export default function Navbar() {
 
           <span
             className={`h-2 w-2 rounded-full ${
-              realtimeStatus === "connected"
+              realtimeStatus === "live"
               ? "bg-emerald-400"
               : "bg-amber-400"
             }`}
@@ -140,7 +140,7 @@ export default function Navbar() {
 
           <span className="text-[10px] font-semibold uppercase tracking-wider text-[#B5B5B5]">
 
-            {realtimeStatus === "connected"
+            {realtimeStatus === "live"
             ? "Live"
             : realtimeStatus}
 
