@@ -1,29 +1,27 @@
+const path = require("path");
+
 /** @type {import('next').NextConfig} */
 
 const nextConfig = {
-
   reactStrictMode: true,
 
   poweredByHeader: false,
 
   experimental: {
-
     optimizePackageImports: [
-      "react-icons"
-    ]
+      "react-icons",
+    ],
   },
 
   images: {
-
     remotePatterns: [
-
       {
         protocol: "https",
+        hostname: "**",
+      },
+    ],
+  },
+};
 
-        hostname: "**"
-      }
-    ]
-  }
-}
+module.exports = nextConfig;
 
-module.exports = nextConfig

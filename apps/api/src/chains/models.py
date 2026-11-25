@@ -11,6 +11,7 @@ class Chain(str, Enum):
     ETHEREUM = "ethereum"
     BNB = "bnb"
     ROBINHOOD = "robinhood"
+    ELYSIUM = "elysium"
 
 
 class ChainType(str, Enum):

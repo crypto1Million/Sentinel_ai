@@ -21,6 +21,7 @@ def get_chain_adapter(
         Chain.BASE,
         Chain.ETHEREUM,
         Chain.BNB,
+        Chain.ELYSIUM,
     }:
         return EVMChainAdapter(config)
 

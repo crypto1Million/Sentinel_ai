@@ -40,6 +40,12 @@ const CHAINS: ChainOption[] = [
     symbol: "HOOD",
     icon: "/brand/chains/robinhood-chain.svg",
   },
+  {
+    id: "elysium",
+    name: "Elysium",
+    symbol: "PYR",
+    icon: "/brand/chains/elysium.svg",
+  },
 ];
 
 export default function ChainTabs() {

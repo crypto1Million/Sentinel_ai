@@ -69,6 +69,7 @@ export default class TransactionSigner {
     ) as Promise<VersionedTransaction>;
   }
 
+  
   // ======================================================
   // Batch Sign
   // ======================================================
@@ -84,10 +85,41 @@ export default class TransactionSigner {
   async signAll(
     transactions: SolanaTransaction[],
   ): Promise<SolanaTransaction[]> {
+
+    // Handle an empty batch
+    if (transactions.length === 0) {
+      return [];
+    }
+
+    // Determine the transaction version
+    const firstIsVersioned =
+      isVersionedTransaction(transactions[0]);
+
+    // Wallet providers expect homogeneous batches.
+    const hasMixedVersions = transactions.some(
+      (transaction) =>
+        isVersionedTransaction(transaction) !== firstIsVersioned
+    );
+
+    if (hasMixedVersions) {
+      throw new Error(
+        "Batch signing requires all transactions to use the same Solana transaction version."
+      );
+    }
+
+    // Versioned transaction batch
+    if (firstIsVersioned) {
+      return this.wallet.signAllTransactions(
+        transactions as VersionedTransaction[]
+      ) as Promise<VersionedTransaction[]>;
+    }
+
+    // Legacy transaction batch
     return this.wallet.signAllTransactions(
-      transactions,
-    ) as Promise<SolanaTransaction[]>;
+      transactions as Transaction[]
+    ) as Promise<Transaction[]>;
   }
+
 
   // ======================================================
   // Sign Message

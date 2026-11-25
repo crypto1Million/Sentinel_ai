@@ -370,6 +370,9 @@ class Settings(BaseSettings):
             "ROBINHOOD_RPC_URL": self.ROBINHOOD_RPC_URL,
             "ROBINHOOD_WSS_URL": self.ROBINHOOD_WSS_URL,
 
+            "ELYSIUM_RPC_URL": self.ELYSIUM_RPC_URL,
+            "ELYSIUM_WSS_URL": self.ELYSIUM_WSS_URL,
+
             "POSTGRES_PASSWORD": self.POSTGRES_PASSWORD,
             "JWT_SECRET": self.JWT_SECRET,
         }
@@ -437,3 +440,13 @@ def get_settings() -> Settings:
     REDIS_STREAM_BLOCK_MS: int = 5_000
 
     REDIS_STREAM_READ_COUNT: int = 100
+
+# =========================================
+# KINETIQ ELYSIUM MAINNET
+# =========================================
+
+ELYSIUM_CHAIN_ID: int = 99901
+ELYSIUM_NATIVE_SYMBOL: str = "HYPE"
+
+ELYSIUM_RPC_URL: str = ""
+ELYSIUM_WSS_URL: str = ""    

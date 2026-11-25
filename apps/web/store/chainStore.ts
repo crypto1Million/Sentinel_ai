@@ -8,7 +8,8 @@ export type ChainId =
   | "base"
   | "ethereum"
   | "bnb"
-  | "robinhood";
+  | "robinhood"
+  | "elysium";
 
 interface ChainStore {
   selectedChain: ChainId;

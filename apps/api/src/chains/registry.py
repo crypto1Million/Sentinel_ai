@@ -62,6 +62,17 @@ CHAIN_CONFIGS: dict[Chain, ChainConfig] = {
         explorer_url="https://robinhoodchain.blockscout.com",
         enabled=True,
     ),
+
+    Chain.ELYSIUM: ChainConfig(
+        id=Chain.ELYSIUM,
+        name="Kinetiq Elysium",
+        chain_type=ChainType.EVM,
+        chain_id=99901,
+        native_symbol="HYPE",
+        rpc_env="ELYSIUM_RPC_URL",
+        explorer_url="https://elysium.kinetiq.xyz/explorer",
+        enabled=True,
+    ),
 }
 
 
