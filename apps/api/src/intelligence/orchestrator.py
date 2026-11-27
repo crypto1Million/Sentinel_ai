@@ -596,7 +596,7 @@ class IntelligenceOrchestrator:
     # SCORE
     # =========================================================
 
-        async def _run_score_engine(
+    async def _run_score_engine(
         self,
         event: RealtimeEvent,
         token_mint: str,
@@ -626,7 +626,7 @@ class IntelligenceOrchestrator:
         if status != "model_derived":
             return
 
-        # Do not store the runner's execution status as a model feature.
+        # Do not store execution status as a model feature.
         score_values = {
             key: value
             for key, value in result.items()

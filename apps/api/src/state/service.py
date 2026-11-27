@@ -13,7 +13,7 @@ from state.models import (
     TokenState,
     WalletState,
 )
-from state.postgres_store import PostgresStateStore
+from state.postgres_repository import PostgresStateStoree
 from state.redis_store import RedisStateStore
 
 
@@ -128,7 +128,7 @@ class StateService:
                 ),
             )
         else:
-            updater(current)
+            update_token()
 
             current.meta.version += 1
 

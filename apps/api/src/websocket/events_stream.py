@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 
 from fastapi import (
     APIRouter,
@@ -99,10 +100,11 @@ async def events_stream(
         """
 
         async for event in bus.subscribe(
-            event_types=CLIENT_EVENT_TYPES,
+           event_types=CLIENT_EVENT_TYPES,
+           last_id=last_id,
         ):
-            await websocket.send_json(
-                event.to_wire()
+           await websocket.send_json(
+              event.to_wire()
             )
 
     async def watch_disconnect() -> None:
@@ -174,3 +176,17 @@ async def events_stream(
             disconnect_task,
             return_exceptions=True,
         )
+
+        last_id = (
+           websocket.query_params.get("last_id")
+           or "$"
+        )
+
+        if (
+           last_id != "$"
+            and re.fullmatch(
+                r"[0-9]+-[0-9]+",
+                last_id,
+            ) is None
+        ):
+            last_id = "$"

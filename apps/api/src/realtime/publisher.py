@@ -3,7 +3,11 @@ from __future__ import annotations
 from typing import Any
 
 from realtime.bus import get_realtime_bus
-from realtime.models import RealtimeEvent
+
+from realtime.models import (
+    ChainPosition,
+    RealtimeEvent,
+)
 
 
 async def publish_event(
@@ -16,14 +20,8 @@ async def publish_event(
     source_id: str | None = None,
     chain: str | None = None,
     status: str = "observed",
+    chain_position: ChainPosition | None = None,
 ) -> RealtimeEvent:
-    """
-    Publish one canonical SentinelAI event.
-
-    The event itself remains the domain object.
-    Redis Stream ID is transport metadata and can be used
-    later for checkpoints/replay.
-    """
 
     event = RealtimeEvent(
         event_type=event_type,
@@ -34,10 +32,9 @@ async def publish_event(
         source=source,
         source_id=source_id,
         status=status,
+        chain_position=chain_position,
     )
 
-    await get_realtime_bus().publish(
-        event
-    )
+    await get_realtime_bus().publish(event)
 
     return event

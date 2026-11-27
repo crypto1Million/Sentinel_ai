@@ -42,8 +42,8 @@ const CHAINS: ChainOption[] = [
   },
   {
     id: "elysium",
-    name: "Elysium",
-    symbol: "PYR",
+    name: "Kinetiq Elysium",
+    symbol: "HYPE",
     icon: "/brand/chains/elysium.svg",
   },
 ];

@@ -12,9 +12,16 @@ node_modules/
 .next/
 dist/
 
-# Env
+# =========================================
+# ENVIRONMENT FILES / SECRETS
+# =========================================
 
 .env
+.env.*
+
+# Allow safe example templates
+!.env.example
+!.env.*.example
 
 # Logs
 

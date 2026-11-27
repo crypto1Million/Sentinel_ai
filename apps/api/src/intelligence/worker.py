@@ -1,15 +1,18 @@
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
 from uuid import uuid4
 
 from config.settings import get_settings
+
 from intelligence.orchestrator import (
     IntelligenceOrchestrator,
 )
+
 from realtime.bus import get_realtime_bus
+from realtime.publisher import publish_event
+from realtime.state_processor import StateProcessor
 
 
 logger = logging.getLogger(
@@ -18,142 +21,97 @@ logger = logging.getLogger(
 
 
 class IntelligenceWorker:
-    """
-    Redis Stream consumer responsible for connecting
-    realtime state changes to SentinelAI intelligence engines.
+    """Single ordered consumer for the SentinelAI event pipeline."""
 
-    One consumer group:
-        sentinel-intelligence
-
-    Multiple worker processes can safely share that group.
-    Redis distributes events across consumers.
-    """
-
-    GROUP = "sentinel-intelligence"
+    GROUP = "sentinel-pipeline"
 
     def __init__(self) -> None:
-
         self.settings = get_settings()
-
         self.bus = get_realtime_bus()
 
-        self.orchestrator = (
-            IntelligenceOrchestrator()
+        self.state_processor = StateProcessor()
+
+        self.orchestrator = IntelligenceOrchestrator(
+            state_service=self.state_processor.state
         )
 
         self.consumer_name = (
             f"{os.getenv('HOSTNAME', 'sentinel')}-"
-            f"{os.getpid()}-"
-            f"{uuid4().hex[:8]}"
+            f"{os.getpid()}-{uuid4().hex[:8]}"
         )
 
-        self.stop_event = asyncio.Event()
+    async def _process(
+        self,
+        stream_id: str,
+        event,
+    ) -> None:
+        # State must be updated before intelligence reads it.
+        await self.state_processor.process(event)
+
+        await self.orchestrator.handle(event)
+
+        await self.bus.ack(
+            group_name=self.GROUP,
+            stream_id=stream_id,
+        )
 
     async def run(self) -> None:
-
         if not self.settings.REALTIME_ENABLED:
-            logger.info(
+            logger.warning(
                 "Realtime pipeline disabled."
             )
             return
 
+        event_types = {
+            "token.updated",
+            "wallet.updated",
+            "pool.updated",
+            "launchpad.detected",
+            "chain.observed",
+        }
+
         logger.info(
-            "Starting IntelligenceWorker "
-            "consumer=%s group=%s",
+            "Starting event worker consumer=%s",
             self.consumer_name,
-            self.GROUP,
         )
 
-        try:
-            async for stream_id, event in (
-                self.bus.consume(
-                    group_name=self.GROUP,
-                    consumer_name=self.consumer_name,
-                    event_types={
-                        "token.updated",
-                        "wallet.updated",
-                        "pool.updated",
-                        "launchpad.detected",
-                        "chain.observed",
+        # Recover events left pending by a crashed worker.
+        async for stream_id, event in self.bus.recover_pending(
+            group_name=self.GROUP,
+            consumer_name=self.consumer_name,
+            min_idle_ms=0,
+            count=100,
+        ):
+            await self._process(stream_id, event)
+
+        async for stream_id, event in self.bus.consume(
+            group_name=self.GROUP,
+            consumer_name=self.consumer_name,
+            event_types=event_types,
+        ):
+            try:
+                await self._process(stream_id, event)
+
+            except Exception as exc:
+                logger.exception(
+                    "Pipeline processing failed: %s",
+                    stream_id,
+                )
+
+                await publish_event(
+                    event_type="system.updated",
+                    entity_type="pipeline_worker",
+                    entity_id=self.consumer_name,
+                    chain=event.chain,
+                    source="pipeline_worker",
+                    source_id=event.event_id,
+                    status="error",
+                    payload={
+                        "failed_stream_id": stream_id,
+                        "failed_event_id": event.event_id,
+                        "error": str(exc),
                     },
                 )
-            ):
 
-                if self.stop_event.is_set():
-                    break
-
-                try:
-                    await self.orchestrator.handle(
-                        event
-                    )
-
-                except Exception as exc:
-                    logger.exception(
-                        "Intelligence processing failed "
-                        "stream=%s event=%s",
-                        stream_id,
-                        event.event_id,
-                    )
-
-                    # Publish an operational event rather
-                    # than fabricating intelligence.
-                    try:
-                        from realtime.publisher import (
-                            publish_event,
-                        )
-
-                        await publish_event(
-                            event_type="system.updated",
-                            entity_type="intelligence_worker",
-                            entity_id=self.consumer_name,
-                            chain=event.chain,
-                            source="intelligence_worker",
-                            source_id=event.event_id,
-                            status="conflict",
-                            payload={
-                                "stream_id": stream_id,
-                                "event_id": event.event_id,
-                                "error": str(exc),
-                            },
-                        )
-                    except Exception:
-                        logger.exception(
-                            "Failed to publish "
-                            "intelligence worker error"
-                        )
-
-                finally:
-                    # Ack after the event has been routed.
-                    # Individual engines publish their own
-                    # derived status/events.
-                    await self.bus.ack(
-                        group_name=self.GROUP,
-                        stream_id=stream_id,
-                    )
-
-        except asyncio.CancelledError:
-            logger.info(
-                "IntelligenceWorker cancelled."
-            )
-            raise
-
-        except Exception:
-            logger.exception(
-                "IntelligenceWorker crashed."
-            )
-            raise
-
-    async def stop(self) -> None:
-        self.stop_event.set()
-
-
-_worker: IntelligenceWorker | None = None
-
-
-def get_intelligence_worker() -> IntelligenceWorker:
-    global _worker
-
-    if _worker is None:
-        _worker = IntelligenceWorker()
-
-    return _worker
+                # Failed message remains pending for recovery.
+                raise

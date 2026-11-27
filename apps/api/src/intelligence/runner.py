@@ -194,8 +194,8 @@ class IntelligenceRunner:
         missing = [
             key
             for key in required
-            if key not in features
-            and not hasattr(token, key)
+            if features.get(key) is None
+            and getattr(token, key, None) is None
         ]
 
         if missing:
@@ -226,10 +226,10 @@ class IntelligenceRunner:
             "insider_percent": features.get(
                 "insider_percent"
             ),
-            "lp_burned": features.get(
-                "lp_burned",
-                token.lp_burned,
-            ),
+
+            # TokenState has no lp_burned field.
+            # Only use actual observed feature data.
+            "lp_burned": features.get("lp_burned"),
         }
 
         scanner_path = (
@@ -461,12 +461,11 @@ class IntelligenceRunner:
             "to_address"
         )
 
-        if not source_address or not target_address:
+        if event.chain != "solana":
             return {
                 "status": "unavailable",
                 "missing_fields": [
-                    "from_address",
-                    "to_address",
+                    "chain_specific_wallet_amount_normalization"
                 ],
             }
 
@@ -576,14 +575,16 @@ class IntelligenceRunner:
     # SCORING
     # =========================================================
 
-        async def scoring(
+    async def scoring(
         self,
         features: dict[str, Any],
     ) -> dict[str, Any]:
 
         """Run the evidence-aware six-pillar SentinelScore model."""
 
-        from intelligence.sentinel_score import SentinelScoreEngine
+        from intelligence.sentinel_score import (
+            SentinelScoreEngine
+        )
 
         try:
             engine = SentinelScoreEngine()
@@ -593,8 +594,6 @@ class IntelligenceRunner:
                 features,
             )
 
-            # Risk flags and a hard veto are meaningful outputs even
-            # when the overall numeric risk score lacks enough coverage.
             has_result = (
                 result.get("potential_score") is not None
                 or result.get("rug_risk_score") is not None

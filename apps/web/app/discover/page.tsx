@@ -5,6 +5,7 @@ import TokenCard from "@/components/TokenCard/TokenCard";
 import ScoreCard from "@/components/ScoreCard/ScoreCard";
 
 import { useRealtimeStore } from "@/store/realtimeStore";
+import { useChainStore } from "@/store/chainStore";
 
 function readString(...values: unknown[]): string | undefined {
   for (const value of values) {
@@ -45,10 +46,18 @@ export default function DiscoverPage() {
     (state) => state.connections.tokens
   );
 
+  const selectedChain = useChainStore(
+     (state) => state.selectedChain
+  );
+
   // Convert canonical entity state into TokenCard props
   const tokens = Object.entries(tokenRecords)
-    .map(([entityId, entity]) => {
-      const values = entity.values;
+    .filter(
+     ([, entity]) =>
+       (entity.chain ?? "unknown").toLowerCase()
+       === selectedChain
+  )
+  .map(([, entity]) => {
 
       const mint =
         readString(
@@ -56,7 +65,7 @@ export default function DiscoverPage() {
           values.mint,
           values.token_address,
           values.address
-        ) || entityId;
+        ) || entity.entityId;
 
       const symbol =
         readString(

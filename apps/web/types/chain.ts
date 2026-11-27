@@ -3,12 +3,9 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type ChainId =
-  | "solana"
-  | "base"
-  | "ethereum"
-  | "bnb"
-  | "robinhood";
+export type {
+  ChainId,
+} from "@/store/chainStore";
 
 interface ChainStore {
   selectedChain: ChainId;

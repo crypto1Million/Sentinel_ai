@@ -52,9 +52,13 @@ class Settings(BaseSettings):
     # REDIS
     # =========================================================
 
+        # =========================================================
+    # REDIS
+    # =========================================================
+
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
-
+    REDIS_PASSWORD: str = ""
     REDIS_DB: int = 0
 
     REDIS_STREAM_PREFIX: str = "sentinel"
@@ -64,6 +68,26 @@ class Settings(BaseSettings):
     REDIS_MARKET_STREAM: str = "market-events"
     REDIS_ALERT_STREAM: str = "alert-events"
     REDIS_SCORE_STREAM: str = "score-events"
+
+    REDIS_STREAM_MAXLEN: int = 1_000_000
+    REDIS_STREAM_BLOCK_MS: int = 5_000
+    REDIS_STREAM_READ_COUNT: int = 100
+
+    CORS_ORIGINS: list[str] = Field(
+        default_factory=lambda: [
+            "http://localhost:3000"
+        ]
+    )
+
+    # =========================================================
+    # KINETIQ ELYSIUM MAINNET
+    # =========================================================
+
+    ELYSIUM_CHAIN_ID: int = 99901
+    ELYSIUM_NATIVE_SYMBOL: str = "HYPE"
+
+    ELYSIUM_RPC_URL: str = ""
+    ELYSIUM_WSS_URL: str = ""
 
     # =========================================================
     # REALTIME PIPELINE
@@ -84,6 +108,9 @@ class Settings(BaseSettings):
 
     # Maximum age before a live field becomes stale.
     REALTIME_STALE_AFTER_SECONDS: float = 10.0
+
+        REDIS_PASSWORD: str = ""
+
 
     # =========================================================
     # HTTP CLIENT
@@ -397,6 +424,8 @@ def get_settings() -> Settings:
     """
     Return the singleton SentinelAI configuration.
     """
+    settings = get_settings()
+
     return Settings()
 
     # =========================================================
@@ -440,13 +469,8 @@ def get_settings() -> Settings:
     REDIS_STREAM_BLOCK_MS: int = 5_000
 
     REDIS_STREAM_READ_COUNT: int = 100
+  
 
-# =========================================
-# KINETIQ ELYSIUM MAINNET
-# =========================================
-
-ELYSIUM_CHAIN_ID: int = 99901
-ELYSIUM_NATIVE_SYMBOL: str = "HYPE"
-
-ELYSIUM_RPC_URL: str = ""
-ELYSIUM_WSS_URL: str = ""    
+    @property
+    def environment(self) -> str:
+        return self.ENVIRONMENT

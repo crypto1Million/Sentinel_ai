@@ -69,6 +69,7 @@ class ChainPosition(BaseModel):
     log_index: int | None = None
 
     commitment: str | None = None
+    stream_cursor: str | None = None
 
 
 class EventEvidence(BaseModel):

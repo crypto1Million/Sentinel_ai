@@ -1052,7 +1052,7 @@ class GraphReport:
         Dashboard
         API
     """
-
+    # • Graph metrics
     report_id: str = ""
 
     report_name: str = "WalletDNA Report"

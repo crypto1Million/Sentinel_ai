@@ -54,6 +54,7 @@ export interface RealtimeEvent<T = Record<string, unknown>> {
 
   model_name?: string | null;
   model_version?: string | null;
+  stream_cursor?: string | null;
 
   parent_event_ids?: string[];
 
@@ -66,6 +67,7 @@ export interface RealtimeEvent<T = Record<string, unknown>> {
 export interface RealtimeEntityState {
   values: Record<string, unknown>;
   chain: string | null;
+  entityId: string;
   eventId: string;
   observedAt: string;
   version: number;
@@ -192,6 +194,8 @@ function mergeEntity(
   );
 
   return {
+    entityId: event.entity_id,
+
     values: {
       ...(current?.values ?? {}),
       ...patch,
@@ -289,8 +293,11 @@ export const useRealtimeStore =
               ? state.wallets
               : state.scores;
 
+        const entityKey =
+          `${event.chain ?? "unknown"}:${event.entity_id}`;
+
         const current =
-          collections[event.entity_id];
+          collections[entityKey];
 
         /*
          * Do not allow an older event to overwrite

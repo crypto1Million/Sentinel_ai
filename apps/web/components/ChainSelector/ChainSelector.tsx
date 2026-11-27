@@ -64,7 +64,7 @@ const CHAINS: ChainOption[] = [
   {
     id: "elysium",
     name: "Kinetiq Elysium",
-    symbol: "ELY",
+    symbol: "HYPE",
     iconUrl: "/brand/chains/elysium.svg",
   },
 ];
@@ -109,15 +109,19 @@ const EVM_NETWORKS: Partial<
   },
 
   robinhood: {
-    chainId: 1,
-    chainName: "Ethereum Mainnet",
+    chainId: 4663,
+    chainName: "Robinhood Chain",
     nativeCurrency: {
       name: "Ether",
       symbol: "ETH",
       decimals: 18,
     },
-    rpcUrls: ["https://ethereum.publicnode.com"],
-    blockExplorerUrls: ["https://etherscan.io"],
+    rpcUrls: [
+      "https://rpc.mainnet.chain.robinhood.com",
+    ],
+    blockExplorerUrls: [
+      "https://robinhoodchain.blockscout.com",
+    ],
   },
 
   elysium: {
@@ -128,13 +132,13 @@ const EVM_NETWORKS: Partial<
       symbol: "HYPE",
       decimals: 18,
     },
-    rpcUrls: [
-    "https://rpc.elysium.kinetiq.xyz",
-  ],
-  blockExplorerUrls: [
-    "https://elysium.kinetiq.xyz/explorer",
-  ],
-},
+    rpcUrls: process.env.NEXT_PUBLIC_ELYSIUM_RPC_URL
+      ? [process.env.NEXT_PUBLIC_ELYSIUM_RPC_URL]
+      : [],
+    blockExplorerUrls: [
+      "https://elysium.kinetiq.xyz/explorer",
+    ],
+  },
 };
 
 function toHexChainId(

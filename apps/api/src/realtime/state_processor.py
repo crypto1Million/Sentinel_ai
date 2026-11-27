@@ -1,303 +1,301 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from decimal import Decimal
 from typing import Any
 
-from events.models import (
-    TokenAuthorityChangedEvent,
-    TokenMetadataUpdatedEvent,
-    MarketSnapshotEvent,
-    LiquidityChangedEvent,
-    LaunchpadAttributionEvent,
-)
-from realtime.envelope import EventEnvelope
-from realtime.bus import get_realtime_bus
+from realtime.models import RealtimeEvent
+
 from state.models import (
-    StateMetadata,
+    PoolState,
+    StateMeta,
+    StateStatus,
     TokenState,
+    WalletState,
 )
-from state.service import get_state_service
+
+from state.service import StateService
+
+
+STATUS_MAP = {
+    "observed": StateStatus.VERIFIED,
+    "derived": StateStatus.DERIVED,
+    "model_derived": StateStatus.DERIVED,
+    "conflict": StateStatus.CONFLICT,
+    "unresolved": StateStatus.UNRESOLVED,
+    "unavailable": StateStatus.UNAVAILABLE,
+    "error": StateStatus.CONFLICT,
+    "unknown": StateStatus.UNAVAILABLE,
+}
 
 
 class StateProcessor:
-    """
-    Converts canonical events into current canonical state.
+    """Reduce canonical RealtimeEvent objects into state."""
 
-    IMPORTANT:
-    This is the reducer layer.
+    TOKEN_FIELDS = {
+        "name", "symbol", "decimals", "price_usd",
+        "market_cap_usd", "fdv_usd", "total_supply",
+        "circulating_supply", "holders", "liquidity_usd",
+        "volume_5m_usd", "volume_1h_usd", "volume_24h_usd",
+        "buy_volume_5m_usd", "sell_volume_5m_usd",
+        "transaction_count_5m", "launchpad_id",
+        "launchpad_name", "launchpad_rail",
+        "launchpad_attribution_status", "primary_pool_id",
+        "pool_ids", "metadata_uri", "logo_uri",
+        "creator_address", "mint_authority",
+        "freeze_authority",
+    }
 
-    Providers do not directly mutate Redis state.
-    Routes do not directly mutate Redis state.
-    WebSockets do not directly mutate Redis state.
-    """
+    WALLET_FIELDS = {
+        "native_balance", "token_count",
+        "transaction_count", "total_volume_usd",
+        "realized_pnl_usd", "unrealized_pnl_usd",
+        "win_rate", "average_hold_seconds",
+        "classification", "smart_money", "sniper",
+        "insider", "fresh_wallet", "first_seen_at",
+        "last_activity_at", "preferred_launchpads",
+        "preferred_tokens",
+    }
 
-    def __init__(self) -> None:
-        self.state = get_state_service()
+    POOL_FIELDS = {
+        "base_reserve", "quote_reserve", "price_usd",
+        "liquidity_usd", "volume_5m_usd",
+        "volume_1h_usd", "volume_24h_usd",
+        "buy_volume_5m_usd", "sell_volume_5m_usd",
+        "fee_bps", "lp_supply", "created_at",
+        "last_swap_at", "last_liquidity_change_at",
+    }
 
-    # =========================================================
-    # TOKEN EVENT REDUCER
-    # =========================================================
-
-    async def process_token_event(
+    def __init__(
         self,
-        event: EventEnvelope,
-    ) -> TokenState | None:
-        chain = event.chain
+        state_service: StateService | None = None,
+    ) -> None:
+        self.state = state_service or StateService()
+
+    @staticmethod
+    def _meta(
+        event: RealtimeEvent,
+        version: int,
+    ) -> StateMeta:
+        return StateMeta(
+            version=version,
+            status=STATUS_MAP.get(
+                event.status,
+                StateStatus.UNAVAILABLE,
+            ),
+            source_id=event.source_id or event.source,
+            observed_at=event.observed_at,
+            processed_at=datetime.now(timezone.utc),
+            last_event_id=event.event_id,
+            parser=event.parser_name,
+            parser_version=event.parser_version,
+        )
+
+    @staticmethod
+    def _clean_payload(
+        payload: dict[str, Any],
+        allowed: set[str],
+    ) -> dict[str, Any]:
+        return {
+            key: value
+            for key, value in payload.items()
+            if key in allowed and value is not None
+        }
+
+    async def _process_token(
+        self,
+        event: RealtimeEvent,
+    ) -> None:
         mint = event.entity_id
+        payload = dict(event.payload)
+
+        # Normalize common provider aliases.
+        if (
+            "image_uri" in payload
+            and "logo_uri" not in payload
+        ):
+            payload["logo_uri"] = payload["image_uri"]
+
+        if (
+            "launchpad_status" in payload
+            and "launchpad_attribution_status" not in payload
+        ):
+            payload["launchpad_attribution_status"] = (
+                str(payload["launchpad_status"]).upper()
+            )
+
+        if (
+            "market_cap" in payload
+            and "market_cap_usd" not in payload
+        ):
+            payload["market_cap_usd"] = payload["market_cap"]
+
+        patch = self._clean_payload(
+            payload,
+            self.TOKEN_FIELDS,
+        )
+
+        chain = event.chain or "unknown"
 
         current = await self.state.get_token(
             chain,
             mint,
         )
 
-        payload: dict[str, Any] = event.payload
+        version = (
+            current.meta.version + 1
+            if current else 1
+        )
 
-        # -----------------------------------------------------
-        # CREATE INITIAL STATE
-        # -----------------------------------------------------
+        if current:
+            data = current.model_dump()
+            data.update(patch)
+            data["meta"] = self._meta(event, version)
 
-        if current is None:
-            current = TokenState(
+            updated = TokenState.model_validate(data)
+        else:
+            updated = TokenState(
                 chain=chain,
                 mint=mint,
-                name=payload.get("name"),
-                symbol=payload.get("symbol"),
-                decimals=payload.get("decimals"),
-                creator_address=payload.get(
-                    "creator_address"
-                ),
-                price_usd=(
-                    self._decimal(
-                        payload.get("price_usd")
-                    )
-                ),
-                market_cap_usd=(
-                    self._decimal(
-                        payload.get("market_cap_usd")
-                    )
-                ),
-                fdv_usd=(
-                    self._decimal(
-                        payload.get("fdv_usd")
-                    )
-                ),
-                liquidity_usd=(
-                    self._decimal(
-                        payload.get("liquidity_usd")
-                    )
-                ),
-                volume_5m_usd=(
-                    self._decimal(
-                        payload.get("volume_5m_usd")
-                    )
-                ),
-                volume_1h_usd=(
-                    self._decimal(
-                        payload.get("volume_1h_usd")
-                    )
-                ),
-                volume_24h_usd=(
-                    self._decimal(
-                        payload.get("volume_24h_usd")
-                    )
-                ),
-                holders=payload.get("holders"),
-                circulating_supply=(
-                    self._decimal(
-                        payload.get(
-                            "circulating_supply"
-                        )
-                    )
-                ),
-                launchpad_id=payload.get(
-                    "launchpad_id"
-                ),
-                launchpad_status=payload.get(
-                    "launchpad_status",
-                    "unresolved",
-                ),
-                metadata_uri=payload.get(
-                    "metadata_uri"
-                ),
-                image_uri=payload.get(
-                    "image_uri"
-                ),
-                meta=StateMetadata(
-                    version=1,
-                    last_event_id=event.event_id,
-                    observed_at=event.observed_at,
-                    updated_at=datetime.now(
-                        timezone.utc
-                    ),
-                    source=event.source.provider,
-                    status=event.quality.value,
-                ),
+                **patch,
+                meta=self._meta(event, version),
             )
 
-            await self.state.save_token(
-                current
-            )
+        await self.state.save_token(updated)
 
-            return current
+    async def _process_wallet(
+        self,
+        event: RealtimeEvent,
+    ) -> None:
+        address = str(
+            event.payload.get("wallet_address")
+            or event.payload.get("address")
+            or event.entity_id
+        )
 
-        # -----------------------------------------------------
-        # SAFE INCREMENT
-        # -----------------------------------------------------
+        patch = self._clean_payload(
+            event.payload,
+            self.WALLET_FIELDS,
+        )
 
-        next_version = (
+        chain = event.chain or "unknown"
+
+        current = await self.state.get_wallet(
+            chain,
+            address,
+        )
+
+        version = (
             current.meta.version + 1
+            if current else 1
         )
 
-        # -----------------------------------------------------
-        # APPLY ONLY OBSERVED VALUES
-        # -----------------------------------------------------
+        if current:
+            data = current.model_dump()
+            data.update(patch)
+            data["meta"] = self._meta(event, version)
 
-        for field in (
-            "name",
-            "symbol",
-            "decimals",
-            "creator_address",
-            "holders",
-            "metadata_uri",
-            "image_uri",
-            "launchpad_id",
-            "launchpad_status",
-        ):
-            if field in payload:
-                value = payload[field]
+            updated = WalletState.model_validate(data)
+        else:
+            updated = WalletState(
+                chain=chain,
+                address=address,
+                **patch,
+                meta=self._meta(event, version),
+            )
 
-                # Do not convert missing values to
-                # fake defaults.
-                if value is not None:
-                    setattr(
-                        current,
-                        field,
-                        value,
-                    )
+        await self.state.save_wallet(updated)
 
-        decimal_fields = (
-            "price_usd",
-            "market_cap_usd",
-            "fdv_usd",
-            "liquidity_usd",
-            "volume_5m_usd",
-            "volume_1h_usd",
-            "volume_24h_usd",
-            "circulating_supply",
+    async def _process_pool(
+        self,
+        event: RealtimeEvent,
+    ) -> None:
+        payload = event.payload
+
+        pool_id = str(
+            payload.get("pool_address")
+            or payload.get("pool_id")
+            or event.entity_id
         )
 
-        for field in decimal_fields:
-            if field in payload:
-                value = (
-                    self._decimal(
-                        payload[field]
-                    )
-                )
+        chain = event.chain or "unknown"
 
-                if value is not None:
-                    setattr(
-                        current,
-                        field,
-                        value,
-                    )
-
-        # -----------------------------------------------------
-        # PROVENANCE / VERSION
-        # -----------------------------------------------------
-
-        current.meta.version = (
-            next_version
+        current = await self.state.get_pool(
+            chain,
+            pool_id,
         )
 
-        current.meta.last_event_id = (
-            event.event_id
+        # PoolState requires a DEX and two token addresses.
+        dex_id = (
+            payload.get("dex_id")
+            or (current.dex_id if current else None)
         )
 
-        current.meta.observed_at = (
-            event.observed_at
+        base_token = (
+            payload.get("base_token")
+            or payload.get("token0")
+            or (current.base_token if current else None)
         )
 
-        current.meta.updated_at = (
-            datetime.now(timezone.utc)
+        quote_token = (
+            payload.get("quote_token")
+            or payload.get("token1")
+            or (current.quote_token if current else None)
         )
 
-        current.meta.source = (
-            event.source.provider
+        # Never fabricate missing pool identifiers.
+        if not dex_id or not base_token or not quote_token:
+            return
+
+        patch = self._clean_payload(
+            payload,
+            self.POOL_FIELDS,
         )
 
-        current.meta.status = (
-            event.quality.value
+        version = (
+            current.meta.version + 1
+            if current else 1
         )
 
-        await self.state.save_token(
-            current
-        )
+        if current:
+            data = current.model_dump()
+            data.update(patch)
+            data["meta"] = self._meta(event, version)
 
-        return current
+            updated = PoolState.model_validate(data)
+        else:
+            updated = PoolState(
+                chain=chain,
+                pool_id=pool_id,
+                dex_id=str(dex_id),
+                base_token=str(base_token),
+                quote_token=str(quote_token),
+                **patch,
+                meta=self._meta(event, version),
+            )
 
-    # =========================================================
-    # DISPATCH
-    # =========================================================
+        await self.state.save_pool(updated)
 
     async def process(
         self,
-        event: EventEnvelope,
+        event: RealtimeEvent,
     ) -> None:
+        if not event.chain:
+            return
 
         if (
-            event.entity_type == "token"
+            event.event_type == "token.updated"
+            and event.entity_type == "token"
         ):
-            await self.process_token_event(
-                event
-            )
+            await self._process_token(event)
 
-    # =========================================================
-    # HELPERS
-    # =========================================================
+        elif (
+            event.event_type == "wallet.updated"
+            and event.entity_type == "wallet"
+        ):
+            await self._process_wallet(event)
 
-    @staticmethod
-    def _decimal(
-        value: Any,
-    ) -> Decimal | None:
-
-        if value is None:
-            return None
-
-        try:
-            return Decimal(str(value))
-        except Exception:
-            return None
-
-
-async def state_worker() -> None:
-    """
-    Dedicated Redis consumer-group worker.
-    """
-
-    bus = get_realtime_bus()
-
-    processor = StateProcessor()
-
-    async for stream_id, event in bus.consume(
-        group_name="sentinel-state",
-        consumer_name="state-worker-1",
-    ):
-        try:
-            # EventEnvelope is the authoritative event
-            # passed through the pipeline.
-            await processor.process(
-                EventEnvelope.model_validate(
-                    event.to_wire()
-                )
-            )
-
-            await bus.ack(
-                group_name="sentinel-state",
-                stream_id=stream_id,
-            )
-
-        except Exception:
-            # Do NOT ACK failed state mutations.
-            # It remains recoverable from the stream.
-            raise
+        elif (
+            event.event_type == "pool.updated"
+            and event.entity_type == "pool"
+        ):
+            await self._process_pool(event)

@@ -227,7 +227,11 @@ class RealtimeBus:
                     ):
                         continue
 
-                    yield event
+                    yield event.model_copy(
+                       update={
+                          "stream_cursor": str(stream_id)
+                        }
+                    )
 
     # =========================================================
     # CONSUMER GROUPS
